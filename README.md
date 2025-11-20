@@ -4,6 +4,12 @@
 
 -----
 
+### 🌐 Direct Web Access
+You can access the tool directly via my website for normal usage: **[INSERT YOUR WEBSITE URL]**.
+*Note: This involves slightly higher (though still minimal) privacy risks regarding browser caching. For absolute zero-trace, follow the workflow below.*
+
+-----
+
 ### 🚨 Ultimate Security Workflow (Recommended)
 
 To achieve **maximum anonymity** and ensure absolutely **zero trace** on your machine, follow this strict procedure:
