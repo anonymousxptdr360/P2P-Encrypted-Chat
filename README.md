@@ -5,7 +5,7 @@
 -----
 
 ### 🌐 Direct Web Access
-You can access the tool directly via my website for normal usage: **[INSERT YOUR WEBSITE URL]**.
+You can access the tool directly via my website for normal usage: **https://stopbordo.odoo.com/transfert**.
 *Note: This involves slightly higher (though still minimal) privacy risks regarding browser caching. For absolute zero-trace, follow the workflow below.*
 
 -----
