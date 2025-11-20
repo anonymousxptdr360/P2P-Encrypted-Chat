@@ -4,48 +4,50 @@
 
 -----
 
+### 🚨 Ultimate Security Workflow (Recommended)
+
+To achieve **maximum anonymity** and ensure absolutely **zero trace** on your machine, follow this strict procedure:
+
+1.  **Download the Code:** Get the latest release here: [**Download Source Code**](https://github.com/anonymousxptdr360/P2P-Encrypted-Chat/releases)
+2.  **Turn on your VPN:** This masks your IP address from the recipient and the signaling server.
+3.  **Go Incognito:** Open the downloaded `index.html` file specifically in a **Private/Incognito Window**.
+    * *Why?* This prevents browser caching and ensures memory is cleared upon closure.
+4.  **Close Completely:** When finished, do not just close the tab. **Close the entire browser window** to trigger the immediate destruction of encryption keys and RAM data.
+
+-----
+
 ### ✨ Core Principles and Features
 
-This tool is designed for absolute confidentiality and anonymity, relying on three golden rules:
+This tool is designed for absolute confidentiality, relying on three golden rules:
 
 1.  **🔒 Absolute Confidentiality (AES-256):**
-
-      * Messages and files are **mathematically locked (AES-256)** directly on your device *before* transmission.
-      * **Indecipherable:** Interception by a hacker, ISP, or relay server yields only incomprehensible characters without the shared password.
+    * Messages are **mathematically locked** directly on your device *before* transmission.
+    * **Indecipherable:** Without the password, interception yields only random noise.
 
 2.  **👻 Zero Trace:**
-
-      * **Zero Database:** Nothing is ever stored on a cloud or server.
-      * **Volatile Memory:** Data exists only in **RAM (Random Access Memory)**.
-      * **Instant Erasure:** Closing the browser tab destroys all keys and data instantly, as if the conversation never took place.
+    * **Zero Database:** Nothing is stored on a server.
+    * **Volatile Memory:** Data exists only in RAM.
+    * **Instant Erasure:** Closing the browser wipes the session.
 
 3.  **🚀 Serverless P2P Connection:**
-
-      * The system establishes a **direct tunnel (P2P)** between users. **No central server stores your data.**
-
------
-
-### ⚠️ Security Notice & Passwords
-
-#### Encryption Activation
-
-To activate the **AES-256 encryption**, both parties **MUST** agree on a common password and enter it using the padlock icon.
-
-#### The Password Rule
-
-If User "A" uses "123" and User "B" uses "456", the messages will **NOT** be readable, resulting in a red "**Decryption Failure**" warning.
-
-#### Anonymity Tip
-
-  * Your recipient can see your public IP address.
-  * **Recommendation:** Always use a **VPN** to mask your IP address for complete anonymity.
+    * Uses a **direct tunnel (WebRTC)** between users.
 
 -----
 
-### 🛠️ Quick Start Guide
+### ⚠️ Critical Security & Anonymity Warnings
 
-1.  **Activate:** Click the "**Activer**" (Activate) button.
-2.  **Share ID:** Give your generated ID to your friend (or scan their QR Code).
-3.  **Connect:** Establish the direct P2P connection.
-4.  **Secure (Optional but Recommended):** Click the padlock and set a **strong, common password** shared via an out-of-band channel (e.g., Signal, SMS, voice).
-5.  **Bonus:** Use **Private Browsing** mode to avoid browser caching.
+While the **content** is secure (AES-256), your **identity** requires extra precautions. Be aware of the following technical limitations:
+
+* **IP Address Leak (WebRTC):** Without a VPN, the P2P protocol (WebRTC) reveals your public IP address to your recipient.
+* **Metadata & CDNs:** Your ISP knows you are connecting to PeerJS servers. External scripts (CDNs) may log that your IP loaded the library. **A VPN prevents this tracking.**
+* **Downloaded Files:** If you download a file sent via chat, it saves to your hard drive. **You must manually delete it** and empty your trash bin to remove the trace.
+
+-----
+
+### 🛠️ Quick Usage Guide
+
+1.  **Activate:** Click "**Activer**".
+2.  **Share ID:** Send your ID to your partner via a secure out-of-band channel (e.g., Signal).
+3.  **Connect:** Establish the P2P connection.
+4.  **SECURE IT:** Click the **Padlock Icon** 🔓 and enter a **shared password**.
+    * *Warning:* If User A types "123" and User B types "456", decryption will fail. The password must be identical.
