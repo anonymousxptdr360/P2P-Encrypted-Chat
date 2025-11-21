@@ -87,18 +87,8 @@
         .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; cursor: pointer; }
         .msg-sent { align-self: flex-end; background-color: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2); border-bottom-right-radius: 2px; }
         .msg-received { align-self: flex-start; background-color: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.2); border-bottom-left-radius: 2px; }
-        
-        /* Info Message (Error/System) */
-        .msg-info { 
-            align-self: center; font-size: 11px; color: #94A3B8; 
-            background: rgba(148, 163, 184, 0.1); padding: 4px 10px; 
-            border-radius: 20px; margin: 5px 0; text-align: center; 
-        }
-        .msg-error {
-            align-self: center; font-size: 12px; color: #F87171; 
-            background: rgba(239, 68, 68, 0.1); padding: 6px 12px; 
-            border-radius: 20px; margin: 5px 0; text-align: center; border: 1px solid rgba(239, 68, 68, 0.2);
-        }
+        .msg-info { align-self: center; font-size: 11px; color: #94A3B8; background: rgba(148, 163, 184, 0.1); padding: 4px 10px; border-radius: 20px; margin: 5px 0; text-align: center; }
+        .msg-error { align-self: center; font-size: 12px; color: #F87171; background: rgba(239, 68, 68, 0.1); padding: 6px 12px; border-radius: 20px; margin: 5px 0; text-align: center; border: 1px solid rgba(239, 68, 68, 0.2); }
 
         /* Scanner */
         #reader video { border-radius: 8px; object-fit: cover; }
@@ -151,54 +141,77 @@
         <div id="password-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 400px;">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-lg text-white">Mot de passe (Secret partagé)</h3>
+                    <h3 class="font-bold text-lg text-white" data-lang="passwordModalTitle">Mot de passe (Secret partagé)</h3>
                     <button onclick="closeModals()" class="text-gray-400 hover:text-red-400"><i data-lucide="x"></i></button>
                 </div>
                 <div class="highlight-box">
                     <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i> 
-                    <strong>RÈGLE D'OR :</strong> Vous et votre ami devez entrer EXACTEMENT le même mot de passe.
+                    <strong data-lang="goldenRule">RÈGLE D'OR :</strong> <span data-lang="goldenRuleText">Vous et votre ami devez entrer EXACTEMENT le même mot de passe.</span>
                 </div>
-                <p class="text-sm text-gray-400 mb-4">Si les mots de passe sont différents, les messages apparaîtront comme "Indéchiffrables".</p>
+                <p class="text-sm text-gray-400 mb-4" data-lang="passwordMismatchInfo">Si les mots de passe sont différents, les messages apparaîtront comme "Indéchiffrables".</p>
                 <div class="relative">
                     <i data-lucide="lock" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
-                    <input type="password" id="modal-pw-input" class="w-full bg-slate-700 rounded-lg py-2 pl-10 pr-4 text-white border border-slate-600 focus:border-emerald-500 outline-none" placeholder="Mot de passe commun...">
+                    <input type="password" id="modal-pw-input" class="w-full bg-slate-700 rounded-lg py-2 pl-10 pr-4 text-white border border-slate-600 focus:border-emerald-500 outline-none" placeholder="Mot de passe commun..." data-lang-placeholder="passwordInputPlaceholder">
                 </div>
-                <button onclick="savePassword()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg">Activer le chiffrement</button>
+                <button onclick="savePassword()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg" data-lang="enableEncryption">Activer le chiffrement</button>
             </div>
         </div>
 
-        <!-- Modal Aide (Détaillée) -->
+        <!-- Modal Aide (Détaillée & Bilingue) -->
         <div id="help-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content help-section" onclick="event.stopPropagation()">
+                
                 <div class="flex justify-between items-center mb-6 border-b border-slate-600 pb-4">
                     <h3 class="font-bold text-2xl text-white flex items-center gap-2">
-                        <i data-lucide="info" class="text-emerald-400"></i> Comment ça marche ?
+                        <i data-lucide="info" class="text-emerald-400"></i> <span data-lang="helpTitle">Comment ça marche ?</span>
                     </h3>
                     <button onclick="closeModals()" class="p-2 rounded-full hover:bg-slate-700 text-gray-400 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
                 
-                <h4>🚀 Principe de Fonctionnement</h4>
-                <p>Ce système connecte deux appareils en direct (P2P). <strong>Aucun serveur ne stocke vos données.</strong></p>
-                
-                <h4>🔒 Sécurité & Chiffrement (Important)</h4>
-                <div class="highlight-box">
-                    ⚠️ <strong>ATTENTION AUX MOTS DE PASSE</strong><br>
-                    Si "A" met le mot de passe "123" et "B" met "456", ils ne pourront PAS se lire. Le système vous avertira par un message rouge "Échec déchiffrement".
+                <!-- Contenu Français -->
+                <div id="help-fr">
+                    <h4>🚀 Principe de Fonctionnement</h4>
+                    <p>Ce système connecte deux appareils en direct (P2P). <strong>Aucun serveur ne stocke vos données.</strong></p>
+                    <h4>🔒 Sécurité & Chiffrement (Important)</h4>
+                    <div class="highlight-box">
+                        ⚠️ <strong>ATTENTION AUX MOTS DE PASSE</strong><br>
+                        Si "A" met le mot de passe "123" et "B" met "456", ils ne pourront PAS se lire. Le système vous avertira par un message rouge "Échec déchiffrement".
+                    </div>
+                    <ul>
+                        <li><strong>Sans mot de passe :</strong> La connexion est directe mais non chiffrée par vos soins.</li>
+                        <li><strong>Avec mot de passe :</strong> En cliquant sur le cadenas <i data-lucide="lock" class="w-3 h-3 inline text-yellow-500"></i>, vous activez le chiffrement <strong>AES-256</strong>.</li>
+                    </ul>
+                    <h4>🛠️ Guide Rapide</h4>
+                    <ol>
+                        <li>Cliquez sur <strong>"Activer"</strong>.</li>
+                        <li>Donnez votre ID à l'ami (ou scannez son QR Code).</li>
+                        <li>Connectez-vous.</li>
+                    </ol>
+                    <button onclick="closeModals()" class="mt-8 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-emerald-500 w-full shadow-lg">J'ai tout compris !</button>
                 </div>
-                <ul>
-                    <li><strong>Sans mot de passe :</strong> La connexion est directe mais non chiffrée par vos soins.</li>
-                    <li><strong>Avec mot de passe :</strong> En cliquant sur le cadenas <i data-lucide="lock" class="w-3 h-3 inline text-yellow-500"></i>, vous activez le chiffrement <strong>AES-256</strong>. Pour que ça marche, les deux personnes doivent se mettre d'accord sur un mot de passe commun (par oral, SMS, etc.) AVANT de l'entrer ici.</li>
-                </ul>
-                
-                <h4>🛠️ Guide Rapide</h4>
-                <ol>
-                    <li>Cliquez sur <strong>"Activer"</strong>.</li>
-                    <li>Donnez votre ID à l'ami (ou scannez son QR Code).</li>
-                    <li>Connectez-vous.</li>
-                    <li>(Optionnel) Définissez un mot de passe commun via le cadenas pour sécuriser.</li>
-                </ol>
 
-                <button onclick="closeModals()" class="mt-8 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-emerald-500 w-full shadow-lg">J'ai tout compris !</button>
+                <!-- Contenu Anglais (Caché par défaut) -->
+                <div id="help-en" class="hidden">
+                    <h4>🚀 How it works</h4>
+                    <p>This system connects two devices directly (P2P). <strong>No server stores your data.</strong></p>
+                    <h4>🔒 Security & Encryption (Important)</h4>
+                    <div class="highlight-box">
+                        ⚠️ <strong>PASSWORD WARNING</strong><br>
+                        If "A" sets password "123" and "B" sets "456", they CANNOT read each other. You will see a red "Decryption Failed" error.
+                    </div>
+                    <ul>
+                        <li><strong>No Password:</strong> Connection is direct but not encrypted by you.</li>
+                        <li><strong>With Password:</strong> Click the lock <i data-lucide="lock" class="w-3 h-3 inline text-yellow-500"></i> to enable <strong>AES-256</strong> encryption.</li>
+                    </ul>
+                    <h4>🛠️ Quick Guide</h4>
+                    <ol>
+                        <li>Click <strong>"Activate"</strong>.</li>
+                        <li>Share your ID (or QR Code) with your friend.</li>
+                        <li>Connect.</li>
+                    </ol>
+                    <button onclick="closeModals()" class="mt-8 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-emerald-500 w-full shadow-lg">Got it!</button>
+                </div>
+
             </div>
         </div>
 
@@ -211,9 +224,24 @@
                 </h2>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="openHelp()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted"><i data-lucide="help-circle" class="w-5 h-5"></i></button>
-                <button onclick="forceStop()" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white"><i data-lucide="refresh-ccw" class="w-5 h-5"></i></button>
-                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted"><i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i></button>
+                <!-- BOUTON LANGUE PRINCIPAL -->
+                <button onclick="toggleLanguage()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors flex items-center gap-1" title="Changer langue">
+                    <i data-lucide="languages" class="w-5 h-5"></i>
+                    <span id="current-lang-display" class="text-xs font-bold">FR</span>
+                </button>
+
+                <button onclick="openHelp()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Aide">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                </button>
+                
+                <button onclick="forceStop()" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors" title="Forcer l'arrêt">
+                    <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
+                </button>
+                
+                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Thème">
+                    <i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i>
+                </button>
+                
                 <div id="status-badge" class="hidden md:flex px-3 py-1.5 rounded-full text-xs font-bold border items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Déconnecté
                 </div>
@@ -227,12 +255,12 @@
             <div id="section-identity" class="space-y-4 fade-in">
                 <label class="flex items-center gap-2 cursor-pointer w-fit text-sm p2p-text-muted">
                     <input type="checkbox" id="use-custom-name" class="w-4 h-4 accent-emerald-500 rounded" onchange="toggleCustomName()">
-                    <span>Choisir mon nom</span>
+                    <span data-lang="useSecretName">Choisir mon nom</span>
                 </label>
                 <div class="flex gap-2">
-                    <input type="text" id="my-id-input" disabled placeholder="ID Aléatoire..." class="w-full rounded-xl px-4 py-3 p2p-input text-sm">
+                    <input type="text" id="my-id-input" disabled placeholder="ID Aléatoire..." class="w-full rounded-xl px-4 py-3 p2p-input text-sm" data-lang-placeholder="idPlaceholder">
                     <button onclick="initializePeer()" id="btn-init" class="px-4 md:px-6 py-3 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-lg whitespace-nowrap">
-                        <i data-lucide="power" class="w-4 h-4"></i> <span>Activer</span>
+                        <i data-lucide="power" class="w-4 h-4"></i> <span data-lang="activate">Activer</span>
                     </button>
                 </div>
                 <div id="id-error" class="hidden text-sm text-red-400 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"></div>
@@ -245,23 +273,23 @@
                     <!-- Bloc Rejoindre -->
                     <div class="p-4 md:p-5 rounded-xl p2p-bg-card border p2p-border shadow-sm">
                         <h3 class="text-xs font-bold text-blue-500 mb-3 uppercase flex items-center gap-2">
-                            <i data-lucide="log-in" class="w-4 h-4"></i> Rejoindre
+                            <i data-lucide="log-in" class="w-4 h-4"></i> <span data-lang="joinSomeone">Rejoindre</span>
                         </h3>
                         <div class="flex gap-2 mb-3">
-                            <input type="text" id="remote-id-input" class="w-full rounded-lg px-3 py-2 text-sm p2p-input" placeholder="ID de l'ami">
+                            <input type="text" id="remote-id-input" class="w-full rounded-lg px-3 py-2 text-sm p2p-input" placeholder="ID de l'ami" data-lang-placeholder="remoteIdPlaceholder">
                             <button onclick="startScanner()" class="p-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg text-slate-300 transition-colors" title="Scanner QR Code">
                                 <i data-lucide="scan-line" class="w-5 h-5"></i>
                             </button>
                         </div>
                         <button onclick="connectToPeer()" id="btn-connect" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-bold text-white shadow-lg transition-transform active:scale-95">
-                            Connexion
+                            <span data-lang="connect">Connexion</span>
                         </button>
                     </div>
 
                     <!-- Bloc Mon ID -->
                     <div class="p-4 md:p-5 rounded-xl p2p-bg-card border p2p-border shadow-sm">
                         <h3 class="text-xs font-bold text-emerald-500 mb-3 uppercase flex items-center gap-2">
-                            <i data-lucide="fingerprint" class="w-4 h-4"></i> Mon ID
+                            <i data-lucide="fingerprint" class="w-4 h-4"></i> <span data-lang="yourId">Mon ID</span>
                         </h3>
                         <div class="flex items-center justify-between p2p-input p-2 rounded-lg border-dashed border p2p-border mb-2">
                             <code id="display-my-id" class="font-mono text-lg text-emerald-500 truncate blur-text mr-2 flex-grow select-none">...</code>
@@ -271,7 +299,7 @@
                                 <button onclick="copyId()" class="p-1.5 hover:bg-slate-500/20 rounded p2p-text-muted"><i data-lucide="copy" class="w-4 h-4"></i></button>
                             </div>
                         </div>
-                        <p class="text-[10px] p2p-text-muted">Partagez ceci pour qu'on vous rejoigne.</p>
+                        <p class="text-[10px] p2p-text-muted"><span data-lang="shareIdInstruction">Partagez ceci pour qu'on vous rejoigne.</span></p>
                     </div>
                 </div>
             </div>
@@ -304,14 +332,15 @@
                     <!-- Zone des messages (Scrollable) -->
                     <div id="chat-log" class="chat-log-area p2p-bg-main">
                         <div class="msg-info flex flex-col gap-1">
-                            <span>Connexion établie.</span>
-                            <span id="security-status" class="text-[10px] text-amber-500">⚠️ Non chiffré (Pas de mot de passe)</span>
+                            <span data-lang="connectedMsg">Connexion établie.</span>
+                            <!-- STATUT DE SÉCURITÉ DYNAMIQUE -->
+                            <span id="security-status" class="text-[10px] text-amber-500"></span>
                         </div>
                     </div>
 
                     <!-- Zone de saisie (Fixe en bas) -->
                     <div class="chat-input-area p2p-header flex gap-2 items-center">
-                        <input type="text" id="msg-input" class="flex-grow rounded-full px-4 py-2.5 text-sm p2p-input border-none focus:ring-2 focus:ring-emerald-500 shadow-inner" placeholder="Message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <input type="text" id="msg-input" class="flex-grow rounded-full px-4 py-2.5 text-sm p2p-input border-none focus:ring-2 focus:ring-emerald-500 shadow-inner" placeholder="Message..." data-lang-placeholder="chatPlaceholder" onkeypress="if(event.key === 'Enter') sendMessage()">
                         <button onclick="sendMessage()" class="p-2.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 transition-transform active:scale-90 shadow-md">
                             <i data-lucide="send" class="w-4 h-4"></i>
                         </button>
@@ -336,12 +365,87 @@
         let html5QrCode = null;
         let isScannerRunning = false; 
         let isDark = true;
-        let sharedPassword = ""; // Variable pour stocker le mot de passe
+        let sharedPassword = ""; 
+        let currentLang = 'fr';
+
+        // --- Traductions Complètes ---
+        const UI_TRANSLATIONS = {
+            fr: {
+                title: "Transfert P2P",
+                useSecretName: "Choisir mon nom",
+                activate: "Activer",
+                joinSomeone: "Rejoindre",
+                connect: "Connexion",
+                yourId: "Mon ID",
+                shareIdInstruction: "Partagez ceci pour qu'on vous rejoigne.",
+                helpTitle: "Comment ça marche ?",
+                idPlaceholder: "ID Aléatoire...",
+                remoteIdPlaceholder: "ID de l'ami",
+                statusDisconnected: "Déconnecté",
+                statusOnline: "En ligne (Prêt)",
+                statusConnected: "Connecté",
+                statusWaiting: "En ligne",
+                idTakenError: "Ce nom est déjà pris !",
+                connectedMsg: "Connexion établie.",
+                toastCopied: "Copié !",
+                // Nouveaux ajouts v12
+                chatPlaceholder: "Message...",
+                passwordModalTitle: "Mot de passe (Secret partagé)",
+                goldenRule: "RÈGLE D'OR :",
+                goldenRuleText: "Vous et votre ami devez entrer EXACTEMENT le même mot de passe.",
+                passwordMismatchInfo: "Si les mots de passe sont différents, les messages apparaîtront comme 'Indéchiffrables'.",
+                passwordInputPlaceholder: "Mot de passe commun...",
+                enableEncryption: "Activer le chiffrement",
+                securityEncrypted: "🔒 Chiffré (Mot de passe actif)",
+                securityUnencrypted: "⚠️ Non chiffré (Pas de mot de passe)",
+                decryptionFail: "🚫 Échec : Mots de passe différents",
+                dataCorrupt: "🚫 Échec : Données corrompues ou Mots de passe différents",
+                encryptedMsgReceived: "🔒 Message chiffré reçu. Veuillez définir le mot de passe.",
+                fileReceived: "Fichier reçu : ",
+                fileSent: "Fichiers envoyés",
+            },
+            en: {
+                title: "P2P Transfer",
+                useSecretName: "Choose my name",
+                activate: "Activate",
+                joinSomeone: "Join",
+                connect: "Connect",
+                yourId: "My ID",
+                shareIdInstruction: "Share this to let others join.",
+                helpTitle: "How it works?",
+                idPlaceholder: "Random ID...",
+                remoteIdPlaceholder: "Friend's ID",
+                statusDisconnected: "Disconnected",
+                statusOnline: "Online (Ready)",
+                statusConnected: "Connected",
+                statusWaiting: "Online",
+                idTakenError: "This name is already taken!",
+                connectedMsg: "Connection established.",
+                toastCopied: "Copied!",
+                // New additions v12
+                chatPlaceholder: "Message...",
+                passwordModalTitle: "Password (Shared Secret)",
+                goldenRule: "GOLDEN RULE:",
+                goldenRuleText: "You and your friend MUST enter EXACTLY the same password.",
+                passwordMismatchInfo: "If passwords differ, messages will appear as 'Undecipherable'.",
+                passwordInputPlaceholder: "Shared password...",
+                enableEncryption: "Enable Encryption",
+                securityEncrypted: "🔒 Encrypted (Password active)",
+                securityUnencrypted: "⚠️ Not Encrypted (No password)",
+                decryptionFail: "🚫 Failed: Different passwords",
+                dataCorrupt: "🚫 Failed: Corrupt data or Different passwords",
+                encryptedMsgReceived: "🔒 Encrypted message received. Please set password.",
+                fileReceived: "File received: ",
+                fileSent: "Files sent",
+            }
+        };
 
         function initUI() {
             updateTheme(true);
             lucide.createIcons();
             updateStatusBadge('disconnect');
+            updateSecurityStatusDisplay(); // Initial call
+            applyLanguage(currentLang);
         }
 
         // --- Themes & UI ---
@@ -356,13 +460,62 @@
         }
         function toggleTheme() { updateTheme(); }
 
+        // --- Language System ---
+        function toggleLanguage() {
+            currentLang = currentLang === 'fr' ? 'en' : 'fr';
+            applyLanguage(currentLang);
+        }
+
+        function applyLanguage(lang) {
+            // Update text content
+            document.querySelectorAll('[data-lang]').forEach(el => {
+                const key = el.getAttribute('data-lang');
+                if (UI_TRANSLATIONS[lang][key]) el.textContent = UI_TRANSLATIONS[lang][key];
+            });
+            // Update placeholders
+            document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-lang-placeholder');
+                if (UI_TRANSLATIONS[lang][key]) el.placeholder = UI_TRANSLATIONS[lang][key];
+            });
+            
+            // Update Help Modal Visibility
+            document.getElementById('help-fr').style.display = lang === 'fr' ? 'block' : 'none';
+            document.getElementById('help-en').style.display = lang === 'en' ? 'block' : 'none';
+            
+            // Update Header Button Text
+            const langDisplay = document.getElementById('current-lang-display');
+            if(langDisplay) langDisplay.textContent = lang.toUpperCase();
+
+            // Update dynamic security status text
+            updateSecurityStatusDisplay();
+        }
+
         function updateStatusBadge(state) {
             const b = document.getElementById('status-badge');
             if(!b) return;
             b.innerHTML = ''; 
-            if(state === 'connect') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Connecté`;
-            else if(state === 'waiting') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500"></span> En ligne`;
-            else b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> Déconnecté`;
+            
+            const t = UI_TRANSLATIONS[currentLang];
+            
+            if(state === 'connect') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${t.statusConnected}`;
+            else if(state === 'waiting') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500"></span> ${t.statusWaiting}`;
+            else b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> ${t.statusDisconnected}`;
+        }
+
+        function updateSecurityStatusDisplay() {
+            const statusEl = document.getElementById('security-status');
+            if (!statusEl) return;
+            
+            const t = UI_TRANSLATIONS[currentLang];
+            
+            if (sharedPassword) {
+                statusEl.innerHTML = `<i data-lucide="lock" class="w-3 h-3 inline"></i> ${t.securityEncrypted}`;
+                statusEl.className = "text-[10px] text-emerald-500";
+            } else {
+                statusEl.innerHTML = `${t.securityUnencrypted}`;
+                statusEl.className = "text-[10px] text-amber-500";
+            }
+            lucide.createIcons();
         }
 
         function showToast(msg) {
@@ -390,7 +543,10 @@
         }
 
         // --- Modals & Password ---
-        function openHelp() { document.getElementById('help-modal').style.display = 'flex'; }
+        function openHelp() { 
+            document.getElementById('help-modal').style.display = 'flex'; 
+            applyLanguage(currentLang); 
+        }
         function openPasswordModal() { 
             document.getElementById('password-modal').style.display = 'flex'; 
             document.getElementById('modal-pw-input').value = sharedPassword;
@@ -400,23 +556,18 @@
         function savePassword() {
             sharedPassword = document.getElementById('modal-pw-input').value.trim();
             const lockBtn = document.getElementById('btn-lock');
-            const status = document.getElementById('security-status');
             
             if (sharedPassword) {
                 lockBtn.classList.remove('text-slate-400');
                 lockBtn.classList.add('text-emerald-500');
-                status.innerHTML = `<i data-lucide="lock" class="w-3 h-3 inline"></i> Chiffré (Secret partagé actif)`;
-                status.className = "text-[10px] text-emerald-500";
                 showToast("Mot de passe défini !");
             } else {
                 lockBtn.classList.add('text-slate-400');
                 lockBtn.classList.remove('text-emerald-500');
-                status.innerHTML = `⚠️ Non chiffré`;
-                status.className = "text-[10px] text-amber-500";
                 showToast("Mot de passe retiré");
             }
+            updateSecurityStatusDisplay();
             closeModals();
-            lucide.createIcons();
         }
         
         function closeModals(e) {
@@ -472,7 +623,12 @@
             peer.on('error', (err) => {
                 btn.disabled = false; btn.innerHTML = `Activer`;
                 document.getElementById('id-error').classList.remove('hidden');
-                document.getElementById('id-error').innerText = `Erreur: ${err.type}`;
+                // Traduction de l'erreur spécifique
+                if (err.type === 'unavailable-id') {
+                    document.getElementById('id-error').innerText = UI_TRANSLATIONS[currentLang].idTakenError;
+                } else {
+                    document.getElementById('id-error').innerText = `Erreur: ${err.type}`;
+                }
             });
         }
 
@@ -522,19 +678,19 @@
 
         function receiveData(packet) {
             let raw = packet.data;
+            const t = UI_TRANSLATIONS[currentLang];
             
             if (packet.encrypted) {
                 if (!sharedPassword) {
-                    addMsg("🔒 Message chiffré reçu. Veuillez définir le mot de passe (Cadenas).", 'info');
+                    addMsg(t.encryptedMsgReceived, 'info');
                     return;
                 }
                 try {
                     const bytes = CryptoJS.AES.decrypt(raw, sharedPassword);
                     raw = bytes.toString(CryptoJS.enc.Utf8);
-                    // IMPORTANT: AES peut ne pas throw une erreur mais renvoyer une string vide si mdp faux
                     if(!raw) throw new Error("Decryption failed / Empty");
                 } catch(e) {
-                    addMsg("🚫 Échec : Mots de passe différents", 'error');
+                    addMsg(t.decryptionFail, 'error');
                     return;
                 }
             }
@@ -549,7 +705,7 @@
                     addMsg(link, 'received', true);
                 }
             } catch(e) {
-                addMsg("🚫 Échec : Données corrompues ou Mots de passe différents", 'error');
+                addMsg(t.dataCorrupt, 'error');
             }
         }
 
@@ -565,7 +721,7 @@
             } else {
                 d.className = `msg-bubble ${type === 'sent' ? 'msg-sent' : 'msg-received'}`;
                 if(isHtml) d.innerHTML = content; else d.innerText = content;
-                if(!isHtml) d.onclick = () => { secureCopy(d.innerText, "Message copié !"); };
+                if(!isHtml) d.onclick = () => { secureCopy(d.innerText, UI_TRANSLATIONS[currentLang].toastCopied); };
             }
             log.appendChild(d);
             log.scrollTop = log.scrollHeight;
@@ -600,7 +756,7 @@
                 }
 
                 conn.send({ data: dataToSend, encrypted: isEncrypted });
-                addMsg("📁 Fichiers envoyés", 'sent');
+                addMsg(UI_TRANSLATIONS[currentLang].fileSent, 'sent');
             } catch(e) { alert(e); }
             
             document.getElementById('zip-loading').classList.add('hidden');
@@ -620,7 +776,7 @@
         }
         function copyId() {
             const txt = document.getElementById('display-my-id').innerText;
-            if(txt !== '...') secureCopy(txt, 'ID Copié');
+            if(txt !== '...') secureCopy(txt, UI_TRANSLATIONS[currentLang].toastCopied);
         }
 
         initUI();
