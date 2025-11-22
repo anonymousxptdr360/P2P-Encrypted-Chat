@@ -678,11 +678,10 @@
 
         function receiveData(packet) {
             let raw = packet.data;
-            const t = UI_TRANSLATIONS[currentLang];
             
             if (packet.encrypted) {
                 if (!sharedPassword) {
-                    addMsg(t.encryptedMsgReceived, 'info');
+                    addMsg(UI_TRANSLATIONS[currentLang].encryptedMsgReceived, 'info');
                     return;
                 }
                 try {
@@ -690,7 +689,7 @@
                     raw = bytes.toString(CryptoJS.enc.Utf8);
                     if(!raw) throw new Error("Decryption failed / Empty");
                 } catch(e) {
-                    addMsg(t.decryptionFail, 'error');
+                    addMsg(UI_TRANSLATIONS[currentLang].decryptionFail, 'error');
                     return;
                 }
             }
@@ -701,11 +700,19 @@
                 const p = JSON.parse(raw);
                 if(p.type === 'text') addMsg(p.content, 'received');
                 if(p.type === 'file') {
-                    const link = `<a href="data:${p.mime};base64,${p.content}" download="${p.name}" class="underline font-bold">📥 ${p.name}</a>`;
-                    addMsg(link, 'received', true);
+                    // CORRECTIF SÉCURITÉ (XSS Patch)
+                    // Création sécurisée de l'élément via l'API DOM pour éviter l'injection de code
+                    const a = document.createElement('a');
+                    a.href = `data:${p.mime};base64,${p.content}`;
+                    a.download = p.name; // Le navigateur traite ceci comme du texte brut
+                    a.className = "underline font-bold";
+                    a.textContent = `📥 ${p.name}`; 
+                    
+                    // On passe le HTML sécurisé (outerHTML)
+                    addMsg(a.outerHTML, 'received', true);
                 }
             } catch(e) {
-                addMsg(t.dataCorrupt, 'error');
+                addMsg(UI_TRANSLATIONS[currentLang].dataCorrupt, 'error');
             }
         }
 
