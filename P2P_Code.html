@@ -6,7 +6,7 @@
     <!-- CSP : Sécurité maximale (unsafe-inline toléré pour fichier unique, mais strict sur les sources) -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: blob:; connect-src *;">
     
-    <title id="app-title">Partage P2P (Fortress v22)</title>
+    <title id="app-title">Partage P2P (Libre v23)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
@@ -44,8 +44,8 @@
         .chat-log-area { flex-grow: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
         .chat-input-area { padding: 0.75rem; background-color: var(--bg-header); border-top: 1px solid var(--border); }
         .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; }
-        .msg-copyable { cursor: pointer; transition: opacity 0.2s; }
-        .msg-copyable:hover { opacity: 0.8; }
+        .msg-text-copy { cursor: pointer; transition: opacity 0.2s; }
+        .msg-text-copy:hover { opacity: 0.8; }
         
         .msg-sent { align-self: flex-end; background-color: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2); border-bottom-right-radius: 2px; }
         .msg-received { align-self: flex-start; background-color: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.2); border-bottom-left-radius: 2px; }
@@ -96,7 +96,7 @@
             </div>
         </div>
 
-        <!-- Aide avec DOM pur (Pas de innerHTML) -->
+        <!-- Aide -->
         <div id="help-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content help-section" onclick="event.stopPropagation()">
                 <div class="flex justify-between items-center mb-6 border-b border-slate-600 pb-4">
@@ -105,7 +105,7 @@
                     </div>
                     <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
-                <div id="help-dom-container" class="space-y-4"></div>
+                <div id="help-text-content"></div>
                 <button onclick="closeModals()" class="mt-6 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg">OK</button>
             </div>
         </div>
@@ -119,7 +119,7 @@
                 </h2>
             </div>
             <div class="flex items-center gap-2">
-                <!-- Bouton GitHub -->
+                <!-- Bouton GitHub (JS Direct) -->
                 <button onclick="openGithub()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Code Source (GitHub)">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </button>
@@ -131,7 +131,7 @@
                 <button onclick="forceStop()" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white" title="Arrêt"><i data-lucide="refresh-ccw" class="w-5 h-5"></i></button>
                 <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted" title="Thème"><i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i></button>
                 <div id="status-badge" class="hidden md:flex px-3 py-1.5 rounded-full text-xs font-bold border items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> <span id="status-text">Déconnecté</span>
+                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Déconnecté
                 </div>
             </div>
         </div>
@@ -199,8 +199,7 @@
                     <div id="chat-log" class="chat-log-area p2p-bg-main">
                         <div class="msg-info flex flex-col gap-1">
                             <span data-lang="connectedMsg">Connexion établie.</span>
-                            <!-- SECURITY STATUS CONTAINER (NO INNERHTML) -->
-                            <span id="security-status-container" class="flex items-center justify-center gap-1 text-[10px]"></span>
+                            <span id="security-status" class="text-[10px] text-amber-500">⚠️ Non chiffré</span>
                         </div>
                     </div>
                     <div class="chat-input-area p2p-header flex gap-2 items-center">
@@ -229,9 +228,6 @@
         let retryCount = 0;
         const MAX_RETRIES = 3;
         let initTimeout = null;
-        // Rate limiter
-        let messageCount = 0;
-        let lastMessageTime = Date.now();
 
         // --- Traductions Complètes ---
         const TRANSLATIONS = {
@@ -258,7 +254,7 @@
                 enableEncryption: "Appliquer",
                 securityEncrypted: "🔒 Sécurisé (AES-256)",
                 securityUnencrypted: "⚠️ Non sécurisé (Clair)",
-                decryptionFail: "⛔ Échec : Mots de passe différents (HMAC)",
+                decryptionFail: "⛔ Échec : Mots de passe différents",
                 encryptedMsgReceived: "🔒 Message chiffré. Entrez le mot de passe.",
                 fileReceived: "Fichier reçu : ",
                 fileSent: "Fichier envoyé.",
@@ -266,7 +262,6 @@
                 errNetwork: "Erreur réseau",
                 errPeerUnavailable: "Pair introuvable",
                 errUnknown: "Erreur inconnue",
-                msgRateLimit: "Ralentissez ! Trop de messages.",
                 helpContent: [
                     { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Chiffrement Robuste' },
                     { tag: 'p', class: 'mb-4 text-sm', text: 'Protocole Encrypt-then-MAC avec PBKDF2 (10k itérations) pour dériver deux clés (AES + HMAC). Intégrité vérifiée.' },
@@ -298,7 +293,7 @@
                 enableEncryption: "Apply",
                 securityEncrypted: "🔒 Secured (AES-256)",
                 securityUnencrypted: "⚠️ Unsecured (Cleartext)",
-                decryptionFail: "⛔ Fail: Wrong Password (HMAC)",
+                decryptionFail: "⛔ Fail: Wrong Password",
                 encryptedMsgReceived: "🔒 Encrypted message. Enter password.",
                 fileReceived: "File received: ",
                 fileSent: "File sent.",
@@ -306,7 +301,6 @@
                 errNetwork: "Network Error",
                 errPeerUnavailable: "Peer unavailable",
                 errUnknown: "Unknown error",
-                msgRateLimit: "Slow down! Too many messages.",
                 helpContent: [
                     { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Robust Encryption' },
                     { tag: 'p', class: 'mb-4 text-sm', text: 'Uses Encrypt-then-MAC with PBKDF2 (10k iterations). Integrity verified.' },
@@ -342,24 +336,47 @@
             const display = document.getElementById('password-strength-display');
             const t = TRANSLATIONS[currentLang];
             
-            if (!pw) { display.innerText = ""; return; }
+            if (!pw) {
+                display.innerText = "";
+                return;
+            }
+
             let score = 0;
             if (pw.length >= 8) score++;
             if (/[A-Z]/.test(pw)) score++;
             if (/[0-9]/.test(pw)) score++;
-            if (/[^A-Za-z0-9]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++; // Symboles
 
-            if (pw.length < 6) { display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; return; }
+            if (pw.length < 6) {
+                display.innerText = `🔴 ${t.pwWeak}`;
+                display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-red-500";
+                return;
+            }
+
             switch (score) {
-                case 0: case 1: display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; break;
-                case 2: display.innerText = `🟠 ${t.pwMedium}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-orange-400"; break;
-                case 3: display.innerText = `🟢 ${t.pwStrong}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-400"; break;
-                case 4: display.innerText = `🚀 ${t.pwExcellent}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-300"; break;
+                case 0: case 1: 
+                    display.innerText = `🔴 ${t.pwWeak}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-red-500";
+                    break;
+                case 2: 
+                    display.innerText = `🟠 ${t.pwMedium}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-orange-400";
+                    break;
+                case 3: 
+                    display.innerText = `🟢 ${t.pwStrong}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-emerald-400";
+                    break;
+                case 4: 
+                    display.innerText = `🚀 ${t.pwExcellent}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-emerald-300";
+                    break;
             }
         }
 
         // --- CRYPTO ROBUSTE (PBKDF2 + Salt + IV + HMAC) ---
+        // Encrypt-then-MAC pattern
         const deriveKeys = (password, salt) => {
+            // 512 bits: 256 for AES, 256 for HMAC
             const kdf = CryptoJS.PBKDF2(password, salt, { keySize: 512/32, iterations: 10000 });
             const aesKey = CryptoJS.lib.WordArray.create(kdf.words.slice(0, 8));
             const hmacKey = CryptoJS.lib.WordArray.create(kdf.words.slice(8, 16));
@@ -371,10 +388,14 @@
                 const salt = CryptoJS.lib.WordArray.random(128/8);
                 const iv = CryptoJS.lib.WordArray.random(128/8);
                 const keys = deriveKeys(password, salt);
+                
                 const encrypted = CryptoJS.AES.encrypt(data, keys.aesKey, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
+                
                 // HMAC on Salt + IV + Ciphertext
                 const msgToSign = salt.clone().concat(iv).concat(encrypted.ciphertext);
                 const hmac = CryptoJS.HmacSHA256(msgToSign, keys.hmacKey);
+                
+                // Format: Salt:IV:Ciphertext:HMAC
                 return salt.toString() + ":" + iv.toString() + ":" + hmac.toString() + ":" + encrypted.ciphertext.toString();
             } catch (e) { console.error(e); return null; }
         };
@@ -395,7 +416,7 @@
                 const msgToVerify = salt.clone().concat(iv).concat(ciphertext);
                 const computedHmac = CryptoJS.HmacSHA256(msgToVerify, keys.hmacKey).toString();
                 
-                if (computedHmac !== receivedHmac) return null; // HMAC Fail
+                if (computedHmac !== receivedHmac) return null; // Integrity fail
                 
                 const decrypted = CryptoJS.AES.decrypt(
                     { ciphertext: ciphertext }, 
@@ -408,7 +429,10 @@
         };
 
         // --- INIT ---
-        function initUI() { updateTheme(true); lucide.createIcons(); applyLanguage('fr'); updateStatusBadge('disconnect'); }
+        function initUI() {
+            updateTheme(true); lucide.createIcons(); applyLanguage('fr');
+            updateStatusBadge('disconnect');
+        }
 
         // --- LOGIC ---
         function initializePeer() {
@@ -430,25 +454,17 @@
             });
 
             peer.on('connection', (c) => setupConn(c));
-            peer.on('error', (err) => handlePeerError(err));
-            
-            peer.on('disconnected', () => {
-                if (retryCount < MAX_RETRIES) { peer.reconnect(); retryCount++; }
+            peer.on('error', (err) => {
+                btn.disabled = false; btn.innerHTML = "Activer";
+                document.getElementById('id-error').classList.remove('hidden');
+                let msg = "";
+                if (err.type === 'unavailable-id') {
+                    msg = TRANSLATIONS[currentLang].idTakenError;
+                } else {
+                    msg = `Erreur: ${err.type}`; // Fallback
+                }
+                document.getElementById('id-error').innerText = msg;
             });
-        }
-
-        function handlePeerError(err) {
-            const btn = document.getElementById('btn-init');
-            btn.disabled = false; btn.innerHTML = "Activer";
-            const errDiv = document.getElementById('id-error');
-            errDiv.classList.remove('hidden');
-            
-            const SAFE_ERROR_MAP = {
-                'unavailable-id': TRANSLATIONS[currentLang].idTakenError,
-                'network': TRANSLATIONS[currentLang].errNetwork,
-                'peer-unavailable': TRANSLATIONS[currentLang].errPeerUnavailable
-            };
-            errDiv.innerText = SAFE_ERROR_MAP[err.type] || `${TRANSLATIONS[currentLang].errUnknown}: ${err.type}`;
         }
 
         function connectToPeer() {
@@ -457,7 +473,7 @@
             const btn = document.getElementById('btn-connect');
             btn.innerText = "..."; btn.disabled = true;
             setupConn(peer.connect(target));
-            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Réessayer"; btn.disabled = false; } }, 5000);
+            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Retry"; btn.disabled = false; } }, 5000);
         }
 
         function setupConn(c) {
@@ -472,48 +488,23 @@
             conn.on('close', () => { alert("Déconnecté"); location.reload(); });
         }
 
-        // --- MIME Validation ---
-        const ALLOWED_FILE_TYPES = {
-            'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/gif': ['.gif'], 'image/webp': ['.webp'],
-            'application/pdf': ['.pdf'], 'application/zip': ['.zip'], 'text/plain': ['.txt'], 'text/csv': ['.csv'],
-            'application/vnd.ms-excel': ['.xls'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
-        };
-
-        function validateFile(file) {
-            if (!Object.keys(ALLOWED_FILE_TYPES).includes(file.type) && file.type !== '') return { valid: false, reason: `Type ${file.type} non autorisé` };
-            // Note: empty type happens sometimes, we can be lenient or strict. Here lenient for folder zips.
-            return { valid: true };
-        }
-
-        // --- Messaging ---
         function sendMessage() {
             const inp = document.getElementById('msg-input');
             const txt = inp.value.trim();
             if(!txt) return;
-
-            // Rate limiting
-            const now = Date.now();
-            if (now - lastMessageTime < 200) {
-                messageCount++;
-                if (messageCount > 5) { alert(TRANSLATIONS[currentLang].msgRateLimit); return; }
-            } else { messageCount = 0; }
-            lastMessageTime = now;
-
-            const payloadObj = { type: 'text', content: txt };
-            sendPayload(payloadObj, txt, false);
-            inp.value = '';
-        }
-
-        function sendPayload(obj, displayContent, isFile) {
-            let payload = JSON.stringify(obj);
+            
+            let payload = JSON.stringify({ type: 'text', content: txt });
             let isEncrypted = false;
+
             if(sharedPassword) {
-                const enc = encryptData(payload, sharedPassword);
-                if(enc) { payload = enc; isEncrypted = true; }
+                const encrypted = encryptData(payload, sharedPassword);
+                if(encrypted) { payload = encrypted; isEncrypted = true; }
             }
+            
             if(conn && conn.open) {
                 conn.send({ data: payload, encrypted: isEncrypted });
-                if(displayContent) addMsg(displayContent, 'sent', false);
+                addMsg(txt, 'sent');
+                inp.value = '';
             }
         }
 
@@ -521,35 +512,27 @@
             let raw = packet.data;
             if(packet.encrypted) {
                 if(!sharedPassword) { addMsg(TRANSLATIONS[currentLang].encryptedMsgReceived, 'info'); return; }
-                const dec = decryptData(raw, sharedPassword);
-                if(!dec) { addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error'); return; }
-                raw = dec;
+                const decrypted = decryptData(raw, sharedPassword);
+                if(!decrypted) { addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error'); return; }
+                raw = decrypted;
             }
             try {
                 const p = JSON.parse(raw);
-                
-                if(p.type === 'text') addMsg(p.content, 'received', false);
-                
+                if(p.type === 'text') addMsg(p.content, 'received');
                 if(p.type === 'file') {
-                    // MIME Check on Receive
-                    if (p.mime && !Object.keys(ALLOWED_FILE_TYPES).includes(p.mime) && p.mime !== 'application/octet-stream') {
-                        addMsg("⛔ Fichier rejeté (Type non autorisé)", 'error');
-                        return;
-                    }
-
-                    const safeName = p.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                    // Correct creation of file link with clean base64
                     const link = document.createElement('a');
                     link.href = `data:${p.mime};base64,${p.content}`;
-                    link.download = safeName;
+                    link.download = p.name;
                     link.className = "underline font-bold text-blue-400 hover:text-white block mt-1";
-                    link.textContent = `📥 ${safeName}`;
-                    link.target = "_blank";
+                    link.textContent = `📥 ${p.name}`;
+                    link.target = "_blank"; // Aide au téléchargement
                     // Fallback click for Odoo iframe restrictions
                     link.onclick = (e) => { e.stopPropagation(); }; 
                     
                     addMsg(link, 'received', true);
                 }
-            } catch(e) { addMsg("Données illisibles", 'error'); }
+            } catch(e) { addMsg("Data Error", 'error'); }
         }
 
         // --- File Handling (Smart Zip) ---
@@ -557,21 +540,22 @@
             const files = Array.from(input.files);
             if(files.length === 0) return;
             
-            // Validation
-            for (let f of files) {
-                const v = validateFile(f);
-                if (!v.valid) { alert(`Refusé: ${f.name} (${v.reason})`); input.value = ''; return; }
-            }
+            // Remove Filter Here - ALLOW ALL TYPES
             
             const statusArea = document.getElementById('file-status-area');
             const statusText = document.getElementById('file-status-text');
             const loader = document.getElementById('file-progress');
-            statusArea.classList.remove('hidden'); loader.classList.remove('hidden');
             
-            let totalSize = 0; files.forEach(f => totalSize += f.size);
+            statusArea.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            
+            let totalSize = 0;
+            files.forEach(f => totalSize += f.size);
             if(totalSize > 50 * 1024 * 1024) { 
                 if(!confirm(TRANSLATIONS[currentLang].fileBigConfirm)) {
-                    statusArea.classList.add('hidden'); input.value = ''; return;
+                    statusArea.classList.add('hidden');
+                    input.value = '';
+                    return;
                 }
             }
 
@@ -582,24 +566,55 @@
                 if (isMultiple || isFolder) {
                     statusText.innerText = `Compression...`;
                     const zip = new JSZip();
-                    for (let f of files) zip.file(f.webkitRelativePath || f.name, f);
+                    for (let f of files) {
+                        const path = f.webkitRelativePath || f.name;
+                        zip.file(path, f);
+                    }
                     const content = await zip.generateAsync({type:"base64"});
-                    sendPayload({ type: 'file', name: `Archive_${Date.now()}.zip`, content: content, mime: 'application/zip' }, "📦 Dossier Envoyé", false);
+                    await sendPayload({
+                        type: 'file', 
+                        name: `Archive_${Date.now()}.zip`, 
+                        content: content, 
+                        mime: 'application/zip'
+                    });
                 } else {
                     const f = files[0];
                     statusText.innerText = `Envoi: ${f.name}...`;
-                    const base64 = await readFileAsBase64(f);
-                    sendPayload({ type: 'file', name: f.name, content: base64, mime: f.type || 'application/octet-stream' }, `${TRANSLATIONS[currentLang].fileSent} ${f.name}`, false);
+                    const base64 = await readFileAsPureBase64(f);
+                    await sendPayload({
+                        type: 'file',
+                        name: f.name,
+                        content: base64,
+                        mime: f.type || 'application/octet-stream'
+                    });
                 }
+                addMsg(TRANSLATIONS[currentLang].fileSent, 'sent');
             } catch(e) { console.error(e); alert("Erreur: " + e); }
             
-            statusArea.classList.add('hidden'); input.value = '';
+            statusArea.classList.add('hidden');
+            input.value = '';
         }
 
-        function readFileAsBase64(file) {
+        async function sendPayload(payloadObj) {
+             let dataToSend = JSON.stringify(payloadObj);
+             let isEncrypted = false;
+             if (sharedPassword) {
+                dataToSend = encryptData(dataToSend, sharedPassword);
+                isEncrypted = true;
+             }
+             if (conn && conn.open) {
+                conn.send({ data: dataToSend, encrypted: isEncrypted });
+             }
+        }
+
+        function readFileAsPureBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onload = () => {
+                    const result = reader.result;
+                    const base64 = result.split(',')[1]; 
+                    resolve(base64);
+                };
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
@@ -609,77 +624,61 @@
         function addMsg(content, type, isElement = false) {
             const log = document.getElementById('chat-log');
             const d = document.createElement('div');
-            if(type==='info') { d.className='msg-info'; d.textContent=content; }
-            else if(type==='error') { d.className='msg-error'; d.textContent=content; }
+            if(type === 'info') { d.className = 'msg-info'; d.innerText = content; }
+            else if(type === 'error') { d.className = 'msg-error'; d.innerText = content; }
             else {
-                d.className = `msg-bubble ${type==='sent'?'msg-sent':'msg-received'} msg-copyable`;
-                if(isElement) {
-                     // If content is an element (like the download link), append it directly
-                     d.appendChild(content);
-                } else {
-                     d.textContent = content;
-                     // Only add copy click if it's text, to avoid blocking link clicks
-                     d.onclick = () => secureCopy(d.textContent, TRANSLATIONS[currentLang].toastCopied);
-                }
+                d.className = `msg-bubble ${type === 'sent' ? 'msg-sent' : 'msg-received'} msg-text-copy`;
+                if(isElement) d.appendChild(content); 
+                else d.innerText = content;
+                
+                if(!isElement) d.onclick = () => { secureCopy(d.innerText, TRANSLATIONS[currentLang].toastCopied); };
             }
-            log.appendChild(d); log.scrollTop=log.scrollHeight;
+            log.appendChild(d); log.scrollTop = log.scrollHeight;
         }
 
         function updateStatusBadge(s) {
             const b = document.getElementById('status-badge');
-            const tSpan = document.getElementById('status-text');
             const t = TRANSLATIONS[currentLang];
-            if(!b || !tSpan) return;
-            
-            if(s === 'connect') {
-                tSpan.textContent = t.statusConnected;
-                b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> ${t.statusConnected}`;
-            }
-            else if(s === 'waiting') {
-                 b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> ${t.statusOnlineWaiting}`;
-            }
-            else {
-                 b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> ${t.statusDisconnected}`;
-            }
-        }
-
-        function updateSecurityStatusDisplay() {
-            const container = document.getElementById('security-status-container');
-            if(!container) return;
-            
-            container.innerHTML = ''; // Safe clear
-            const icon = document.createElement('i');
-            icon.setAttribute('data-lucide', sharedPassword ? 'lock' : 'unlock');
-            icon.className = `w-3 h-3 ${sharedPassword ? 'text-emerald-500' : 'text-amber-500'}`;
-            
-            const text = document.createElement('span');
-            text.className = sharedPassword ? 'text-emerald-500' : 'text-amber-500';
-            text.textContent = sharedPassword ? TRANSLATIONS[currentLang].securityEncrypted : TRANSLATIONS[currentLang].securityUnencrypted;
-            
-            container.appendChild(icon);
-            container.appendChild(text);
-            lucide.createIcons();
+            if(s === 'connect') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${t.statusConnected}`;
+            else if(s === 'waiting') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500"></span> ${t.statusOnlineWaiting}`;
+            else b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> ${t.statusDisconnected}`;
         }
 
         function applyLanguage(lang) {
             currentLang = lang;
             document.querySelectorAll('[data-lang]').forEach(el => {
-                const k = el.getAttribute('data-lang'); if(TRANSLATIONS[lang][k]) el.textContent=TRANSLATIONS[lang][k];
+                const k = el.getAttribute('data-lang');
+                if(TRANSLATIONS[lang][k]) el.textContent = TRANSLATIONS[lang][k];
             });
             document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
-                const k = el.getAttribute('data-lang-placeholder'); if(TRANSLATIONS[lang][k]) el.placeholder=TRANSLATIONS[lang][k];
+                const k = el.getAttribute('data-lang-placeholder');
+                if(TRANSLATIONS[lang][k]) el.placeholder = TRANSLATIONS[lang][k];
             });
             renderHelp();
-            document.getElementById('current-lang-display').textContent = lang.toUpperCase();
-            updateSecurityStatusDisplay();
+            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
+            updateSecurityStatus();
+        }
+
+        function updateSecurityStatus() {
+            const el = document.getElementById('security-status');
+            if(!el) return;
+            if(sharedPassword) {
+                el.innerHTML = `<i data-lucide="lock" class="w-3 h-3 inline"></i> ${TRANSLATIONS[currentLang].securityEncrypted}`;
+                el.className = "text-[10px] text-emerald-500";
+            } else {
+                el.innerHTML = `${TRANSLATIONS[currentLang].securityUnencrypted}`;
+                el.className = "text-[10px] text-amber-500";
+            }
+            lucide.createIcons();
         }
 
         function updateTheme(forceDark = null) {
             const root = document.getElementById('p2p-root');
             const icon = document.getElementById('theme-icon');
-            if(forceDark !== null) isDark = forceDark; else isDark = !isDark;
-            if(isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); if(icon) icon.setAttribute('data-lucide','moon'); }
-            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); if(icon) icon.setAttribute('data-lucide','sun'); }
+            if (forceDark !== null) isDark = forceDark; else isDark = !isDark;
+            
+            if (isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); if(icon) icon.setAttribute('data-lucide', 'moon'); }
+            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); if(icon) icon.setAttribute('data-lucide', 'sun'); }
             lucide.createIcons();
         }
 
@@ -687,43 +686,57 @@
         function toggleTheme() { updateTheme(); }
         function forceStop() { if(confirm("Reload?")) location.reload(); }
         function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.add('toast-visible'); setTimeout(()=>t.classList.remove('toast-visible'),2000); }
-        function secureCopy(t, m) { if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast(m)); }
         
+        // Fallback Copy
+        function secureCopy(text, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast(successMsg)).catch(() => fallbackCopy(text, successMsg));
+            } else { fallbackCopy(text, successMsg); }
+        }
+        function fallbackCopy(text, successMsg) {
+            const ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            try { if(document.execCommand('copy')) showToast(successMsg); } catch (err) {}
+            document.body.removeChild(ta);
+        }
+
         // Modals
-        function openHelp() { document.getElementById('help-modal').style.display='flex'; applyLanguage(currentLang); }
-        function openPasswordModal() { document.getElementById('password-modal').style.display='flex'; document.getElementById('modal-pw-input').value=sharedPassword; }
+        function openHelp() { document.getElementById('help-modal').style.display = 'flex'; }
+        function openPasswordModal() { document.getElementById('password-modal').style.display = 'flex'; document.getElementById('modal-pw-input').value = sharedPassword; }
         function savePassword() {
             sharedPassword = document.getElementById('modal-pw-input').value.trim();
             const btn = document.getElementById('btn-lock');
             if(sharedPassword) { btn.classList.add('text-emerald-500'); btn.classList.remove('text-slate-400'); showToast("Mot de passe défini"); }
             else { btn.classList.remove('text-emerald-500'); btn.classList.add('text-slate-400'); showToast("Mot de passe retiré"); }
-            updateSecurityStatusDisplay(); document.getElementById('password-strength-display').innerText=""; closeModals();
+            updateSecurityStatus(); 
+            document.getElementById('password-strength-display').innerText = "";
+            closeModals();
         }
         function closeModals(e) {
             if(e && e.target.classList.contains('modal-content')) return;
             document.querySelectorAll('.modal-backdrop').forEach(el => el.style.display='none');
-            if(html5QrCode && isScannerRunning) { html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }); }
+            if(html5QrCode && isScannerRunning) { html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }).catch(()=>{}); }
         }
 
-        // QR & Scan
+        // QR
         function showQrCode() {
             const id = document.getElementById('display-my-id').innerText;
-            if(id==='...') return;
-            document.getElementById('qrcode').innerHTML='';
-            new QRCode(document.getElementById('qrcode'), {text:id, width:128, height:128});
-            document.getElementById('qr-text-display').innerText=id;
-            document.getElementById('qr-modal').style.display='flex';
+            if(id === '...') return;
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById('qrcode'), { text: id, width: 128, height: 128 });
+            document.getElementById('qr-text-display').innerText = id;
+            document.getElementById('qr-modal').style.display = 'flex';
         }
         function startScanner() {
-            document.getElementById('scanner-modal').style.display='flex';
+            document.getElementById('scanner-modal').style.display = 'flex';
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({facingMode:"environment"}, {fps:10, qrbox:{width:250, height:250}}, (txt)=>{
-                document.getElementById('remote-id-input').value=txt; showToast("QR OK"); stopScanner();
-            });
-            isScannerRunning=true;
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => {
+                document.getElementById('remote-id-input').value = txt; showToast("QR OK"); closeModals();
+            }).then(() => isScannerRunning=true).catch(e => { alert("Caméra erreur: "+e); closeModals(); });
         }
         function stopScanner() { closeModals(); }
-        function toggleCustomName() { const c=document.getElementById('use-custom-name'); document.getElementById('my-id-input').disabled=!c.checked; if(!c.checked) document.getElementById('my-id-input').value=''; }
+        function toggleCustomName() { const c = document.getElementById('use-custom-name'); document.getElementById('my-id-input').disabled = !c.checked; if(!c.checked) document.getElementById('my-id-input').value = ''; }
         function toggleIdReveal() { document.getElementById('display-my-id').classList.toggle('revealed'); lucide.createIcons(); }
         function copyId() { const t = document.getElementById('display-my-id').innerText; if(t!=='...') secureCopy(t, TRANSLATIONS[currentLang].toastCopied); }
 
