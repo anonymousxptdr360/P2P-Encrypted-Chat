@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="app-title">Partage Sécurisé P2P (v20)</title>
+    <!-- CSP : Sécurité maximale (unsafe-inline toléré pour fichier unique, mais strict sur les sources) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: blob:; connect-src *;">
     
-    <!-- Tailwind CSS -->
+    <title id="app-title">Partage P2P (Fortress v22)</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -17,7 +17,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        #p2p-root { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; isolation: isolate; }
+        #p2p-root { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; line-height: 1.5; isolation: isolate; }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .toast-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); opacity: 0; background-color: #10B981; color: white; padding: 10px 24px; border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.27); z-index: 2147483647; display: flex; align-items: center; gap: 8px; }
@@ -26,7 +26,6 @@
         .blur-text:hover { filter: blur(3px); }
         .blur-text.revealed { filter: blur(0); user-select: all; }
         
-        /* Themes */
         #p2p-root.theme-dark { --bg-main: #0F172A; --bg-card: #1E293B; --bg-header: #020617; --bg-input: #334155; --text-main: #F8FAFC; --text-muted: #94A3B8; --border: #334155; }
         #p2p-root.theme-light { --bg-main: #F8FAFC; --bg-card: #FFFFFF; --bg-header: #F1F5F9; --bg-input: #E2E8F0; --text-main: #1E293B; --text-muted: #64748B; --border: #CBD5E1; }
 
@@ -38,15 +37,16 @@
         #p2p-root .p2p-text-main { color: var(--text-main) !important; }
         #p2p-root .p2p-text-muted { color: var(--text-muted) !important; }
         
-        /* Modals */
         .modal-backdrop { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9) !important; display: none; justify-content: center; align-items: center; z-index: 2147483646 !important; backdrop-filter: blur(5px); }
         .modal-content { background: #1E293B; color: #F8FAFC; padding: 25px; border-radius: 16px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; border: 1px solid #334155; position: relative; z-index: 2147483647; text-align: left; }
         
-        /* Chat */
         .chat-interface { display: flex; flex-direction: column; height: 500px; max-height: 70vh; }
         .chat-log-area { flex-grow: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
         .chat-input-area { padding: 0.75rem; background-color: var(--bg-header); border-top: 1px solid var(--border); }
-        .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; cursor: pointer; }
+        .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; }
+        .msg-copyable { cursor: pointer; transition: opacity 0.2s; }
+        .msg-copyable:hover { opacity: 0.8; }
+        
         .msg-sent { align-self: flex-end; background-color: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2); border-bottom-right-radius: 2px; }
         .msg-received { align-self: flex-start; background-color: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.2); border-bottom-left-radius: 2px; }
         .msg-info { align-self: center; font-size: 11px; color: #94A3B8; background: rgba(148, 163, 184, 0.1); padding: 4px 10px; border-radius: 20px; margin: 5px 0; text-align: center; }
@@ -83,25 +83,20 @@
                     <h3 class="font-bold text-lg text-white" data-lang="passwordModalTitle">Sécurité Avancée</h3>
                     <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
-                
                 <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded text-yellow-400 text-xs mb-4">
                     <i data-lucide="shield-alert" class="w-4 h-4 inline mr-1"></i> 
                     <strong data-lang="goldenRule">RÈGLE D'OR :</strong> <span data-lang="goldenRuleText">Même mot de passe requis des deux côtés.</span>
                 </div>
-                
-                <!-- Indicateur de robustesse -->
                 <div id="password-strength-display" class="text-xs font-bold mb-2 h-4 transition-all text-right pr-1"></div>
-                
                 <div class="relative">
                     <i data-lucide="key" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
                     <input type="password" id="modal-pw-input" class="w-full bg-slate-700 rounded-lg py-2 pl-10 pr-4 text-white border border-slate-600 focus:border-emerald-500 outline-none transition-colors" placeholder="..." data-lang-placeholder="passwordInputPlaceholder" oninput="checkPasswordStrength(this.value)">
                 </div>
-                
                 <button onclick="savePassword()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg" data-lang="enableEncryption">Appliquer</button>
             </div>
         </div>
 
-        <!-- Aide -->
+        <!-- Aide avec DOM pur (Pas de innerHTML) -->
         <div id="help-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content help-section" onclick="event.stopPropagation()">
                 <div class="flex justify-between items-center mb-6 border-b border-slate-600 pb-4">
@@ -110,7 +105,7 @@
                     </div>
                     <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
-                <div id="help-text-content"></div>
+                <div id="help-dom-container" class="space-y-4"></div>
                 <button onclick="closeModals()" class="mt-6 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg">OK</button>
             </div>
         </div>
@@ -124,7 +119,7 @@
                 </h2>
             </div>
             <div class="flex items-center gap-2">
-                <!-- Bouton GitHub (JS Force Open) -->
+                <!-- Bouton GitHub -->
                 <button onclick="openGithub()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Code Source (GitHub)">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </button>
@@ -136,7 +131,7 @@
                 <button onclick="forceStop()" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white" title="Arrêt"><i data-lucide="refresh-ccw" class="w-5 h-5"></i></button>
                 <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted" title="Thème"><i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i></button>
                 <div id="status-badge" class="hidden md:flex px-3 py-1.5 rounded-full text-xs font-bold border items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Déconnecté
+                    <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> <span id="status-text">Déconnecté</span>
                 </div>
             </div>
         </div>
@@ -195,6 +190,8 @@
                         <div class="w-px h-4 bg-slate-500/20"></div>
                         <button onclick="document.getElementById('file-input-chat').click()" class="p-2 rounded-lg hover:bg-slate-500/20 p2p-text-muted" title="Fichier"><i data-lucide="paperclip" class="w-4 h-4"></i></button>
                         <input type="file" id="file-input-chat" class="hidden" multiple onchange="handleFileSelect(this)">
+                        <!-- Folder input trick -->
+                        <input type="file" id="file-input-folder" class="hidden" webkitdirectory directory onchange="handleFileSelect(this)">
                     </div>
                 </div>
 
@@ -202,7 +199,8 @@
                     <div id="chat-log" class="chat-log-area p2p-bg-main">
                         <div class="msg-info flex flex-col gap-1">
                             <span data-lang="connectedMsg">Connexion établie.</span>
-                            <span id="security-status" class="text-[10px] text-amber-500">⚠️ Non chiffré</span>
+                            <!-- SECURITY STATUS CONTAINER (NO INNERHTML) -->
+                            <span id="security-status-container" class="flex items-center justify-center gap-1 text-[10px]"></span>
                         </div>
                     </div>
                     <div class="chat-input-area p2p-header flex gap-2 items-center">
@@ -231,6 +229,9 @@
         let retryCount = 0;
         const MAX_RETRIES = 3;
         let initTimeout = null;
+        // Rate limiter
+        let messageCount = 0;
+        let lastMessageTime = Date.now();
 
         // --- Traductions Complètes ---
         const TRANSLATIONS = {
@@ -257,17 +258,22 @@
                 enableEncryption: "Appliquer",
                 securityEncrypted: "🔒 Sécurisé (AES-256)",
                 securityUnencrypted: "⚠️ Non sécurisé (Clair)",
-                decryptionFail: "⛔ Échec : Mots de passe différents",
+                decryptionFail: "⛔ Échec : Mots de passe différents (HMAC)",
                 encryptedMsgReceived: "🔒 Message chiffré. Entrez le mot de passe.",
                 fileReceived: "Fichier reçu : ",
                 fileSent: "Fichier envoyé.",
-                fileBig: "⚠️ Fichier trop gros (>50Mo). Risque de plantage.",
-                helpContent: `<h4 class="text-emerald-400 font-bold mb-2">🔒 Chiffrement Robuste</h4><p class="mb-4">Protocole <strong>Encrypt-then-MAC</strong> avec <strong>PBKDF2</strong> (10k itérations) pour dériver deux clés (AES + HMAC) depuis votre mot de passe. Vérification d'intégrité avant déchiffrement.</p><h4 class="text-amber-400 font-bold mb-2">⚠️ Limitations</h4><p>Le chiffrement JS est intensif. Limite fichiers: 50 Mo. Les scripts sont chargés sans SRI pour éviter les blocages CDN.</p>`,
-                // Strength indicator
-                pwWeak: "Trop faible",
-                pwMedium: "Moyen",
-                pwStrong: "Fort",
-                pwExcellent: "Excellent"
+                fileBigConfirm: "Attention : Ce fichier dépasse 50 Mo. Le chiffrement en JavaScript peut faire planter votre navigateur sur mobile. Continuer ?",
+                errNetwork: "Erreur réseau",
+                errPeerUnavailable: "Pair introuvable",
+                errUnknown: "Erreur inconnue",
+                msgRateLimit: "Ralentissez ! Trop de messages.",
+                helpContent: [
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Chiffrement Robuste' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Protocole Encrypt-then-MAC avec PBKDF2 (10k itérations) pour dériver deux clés (AES + HMAC). Intégrité vérifiée.' },
+                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Limitations' },
+                    { tag: 'p', class: 'text-sm', text: 'Le chiffrement JS est intensif. Limite fichiers: 50 Mo conseillée. Les scripts sont chargés sans SRI pour éviter les blocages CDN.' }
+                ],
+                pwWeak: "Trop faible", pwMedium: "Moyen", pwStrong: "Fort", pwExcellent: "Excellent"
             },
             en: {
                 title: "Secure Transfer",
@@ -292,19 +298,39 @@
                 enableEncryption: "Apply",
                 securityEncrypted: "🔒 Secured (AES-256)",
                 securityUnencrypted: "⚠️ Unsecured (Cleartext)",
-                decryptionFail: "⛔ Fail: Wrong Password",
+                decryptionFail: "⛔ Fail: Wrong Password (HMAC)",
                 encryptedMsgReceived: "🔒 Encrypted message. Enter password.",
                 fileReceived: "File received: ",
                 fileSent: "File sent.",
-                fileBig: "⚠️ File too big (>50MB). May crash.",
-                helpContent: `<h4 class="text-emerald-400 font-bold mb-2">🔒 Robust Encryption</h4><p class="mb-4">Uses <strong>Encrypt-then-MAC</strong> with <strong>PBKDF2</strong> (10k iterations) to derive two keys (AES + HMAC). Integrity check before decryption.</p><h4 class="text-amber-400 font-bold mb-2">⚠️ Limitations</h4><p>JS encryption is heavy. File limit: 50MB. Scripts loaded without SRI to prevent CDN blocks.</p>`,
-                // Strength indicator
-                pwWeak: "Too weak",
-                pwMedium: "Medium",
-                pwStrong: "Strong",
-                pwExcellent: "Excellent"
+                fileBigConfirm: "Warning: File > 50MB. JS Encryption might crash mobile browsers. Continue?",
+                errNetwork: "Network Error",
+                errPeerUnavailable: "Peer unavailable",
+                errUnknown: "Unknown error",
+                msgRateLimit: "Slow down! Too many messages.",
+                helpContent: [
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Robust Encryption' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Uses Encrypt-then-MAC with PBKDF2 (10k iterations). Integrity verified.' },
+                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Limitations' },
+                    { tag: 'p', class: 'text-sm', text: 'JS encryption is heavy. Files > 50MB limit recommended.' }
+                ],
+                pwWeak: "Too weak", pwMedium: "Medium", pwStrong: "Strong", pwExcellent: "Excellent"
             }
         };
+
+        // --- DOM HELP BUILDER (NO XSS) ---
+        function renderHelp() {
+            const container = document.getElementById('help-dom-container');
+            if(!container) return;
+            container.innerHTML = ''; // Clear
+            const content = TRANSLATIONS[currentLang].helpContent;
+            
+            content.forEach(item => {
+                const el = document.createElement(item.tag);
+                el.className = item.class;
+                el.textContent = item.text;
+                container.appendChild(el);
+            });
+        }
 
         // --- OPEN GITHUB FORCE ---
         function openGithub() {
@@ -316,76 +342,73 @@
             const display = document.getElementById('password-strength-display');
             const t = TRANSLATIONS[currentLang];
             
-            if (!pw) {
-                display.innerText = "";
-                return;
-            }
-
+            if (!pw) { display.innerText = ""; return; }
             let score = 0;
             if (pw.length >= 8) score++;
             if (/[A-Z]/.test(pw)) score++;
             if (/[0-9]/.test(pw)) score++;
-            if (/[^A-Za-z0-9]/.test(pw)) score++; // Symboles
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
 
-            if (pw.length < 6) {
-                display.innerText = `🔴 ${t.pwWeak}`;
-                display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-red-500";
-                return;
-            }
-
+            if (pw.length < 6) { display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; return; }
             switch (score) {
-                case 0: case 1: 
-                    display.innerText = `🔴 ${t.pwWeak}`; 
-                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-red-500";
-                    break;
-                case 2: 
-                    display.innerText = `🟠 ${t.pwMedium}`; 
-                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-orange-400";
-                    break;
-                case 3: 
-                    display.innerText = `🟢 ${t.pwStrong}`; 
-                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-emerald-400";
-                    break;
-                case 4: 
-                    display.innerText = `🚀 ${t.pwExcellent}`; 
-                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-emerald-300";
-                    break;
+                case 0: case 1: display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; break;
+                case 2: display.innerText = `🟠 ${t.pwMedium}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-orange-400"; break;
+                case 3: display.innerText = `🟢 ${t.pwStrong}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-400"; break;
+                case 4: display.innerText = `🚀 ${t.pwExcellent}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-300"; break;
             }
         }
 
-        // --- CRYPTO ROBUSTE (PBKDF2 + Salt + IV) ---
-        const generateKey = (password, salt) => {
-            return CryptoJS.PBKDF2(password, salt, { keySize: 256/32, iterations: 10000 });
+        // --- CRYPTO ROBUSTE (PBKDF2 + Salt + IV + HMAC) ---
+        const deriveKeys = (password, salt) => {
+            const kdf = CryptoJS.PBKDF2(password, salt, { keySize: 512/32, iterations: 10000 });
+            const aesKey = CryptoJS.lib.WordArray.create(kdf.words.slice(0, 8));
+            const hmacKey = CryptoJS.lib.WordArray.create(kdf.words.slice(8, 16));
+            return { aesKey, hmacKey };
         };
 
         const encryptData = (data, password) => {
             try {
                 const salt = CryptoJS.lib.WordArray.random(128/8);
                 const iv = CryptoJS.lib.WordArray.random(128/8);
-                const key = generateKey(password, salt);
-                const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
-                return salt.toString() + ":" + iv.toString() + ":" + encrypted.toString();
+                const keys = deriveKeys(password, salt);
+                const encrypted = CryptoJS.AES.encrypt(data, keys.aesKey, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
+                // HMAC on Salt + IV + Ciphertext
+                const msgToSign = salt.clone().concat(iv).concat(encrypted.ciphertext);
+                const hmac = CryptoJS.HmacSHA256(msgToSign, keys.hmacKey);
+                return salt.toString() + ":" + iv.toString() + ":" + hmac.toString() + ":" + encrypted.ciphertext.toString();
             } catch (e) { console.error(e); return null; }
         };
 
         const decryptData = (cipherPayload, password) => {
             try {
                 const parts = cipherPayload.split(':');
-                if (parts.length !== 3) return null;
+                if (parts.length !== 4) return null;
+                
                 const salt = CryptoJS.enc.Hex.parse(parts[0]);
                 const iv = CryptoJS.enc.Hex.parse(parts[1]);
-                const ciphertext = parts[2];
-                const key = generateKey(password, salt);
-                const decrypted = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
+                const receivedHmac = parts[2];
+                const ciphertext = CryptoJS.enc.Hex.parse(parts[3]);
+                
+                const keys = deriveKeys(password, salt);
+                
+                // Verify HMAC
+                const msgToVerify = salt.clone().concat(iv).concat(ciphertext);
+                const computedHmac = CryptoJS.HmacSHA256(msgToVerify, keys.hmacKey).toString();
+                
+                if (computedHmac !== receivedHmac) return null; // HMAC Fail
+                
+                const decrypted = CryptoJS.AES.decrypt(
+                    { ciphertext: ciphertext }, 
+                    keys.aesKey, 
+                    { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
+                );
+                
                 return decrypted.toString(CryptoJS.enc.Utf8);
             } catch (e) { return null; }
         };
 
         // --- INIT ---
-        function initUI() {
-            updateTheme(true); lucide.createIcons(); applyLanguage('fr');
-            updateStatusBadge('disconnect');
-        }
+        function initUI() { updateTheme(true); lucide.createIcons(); applyLanguage('fr'); updateStatusBadge('disconnect'); }
 
         // --- LOGIC ---
         function initializePeer() {
@@ -407,11 +430,25 @@
             });
 
             peer.on('connection', (c) => setupConn(c));
-            peer.on('error', (err) => {
-                btn.disabled = false; btn.innerHTML = "Activer";
-                document.getElementById('id-error').classList.remove('hidden');
-                document.getElementById('id-error').innerText = err.type === 'unavailable-id' ? TRANSLATIONS[currentLang].idTakenError : err.type;
+            peer.on('error', (err) => handlePeerError(err));
+            
+            peer.on('disconnected', () => {
+                if (retryCount < MAX_RETRIES) { peer.reconnect(); retryCount++; }
             });
+        }
+
+        function handlePeerError(err) {
+            const btn = document.getElementById('btn-init');
+            btn.disabled = false; btn.innerHTML = "Activer";
+            const errDiv = document.getElementById('id-error');
+            errDiv.classList.remove('hidden');
+            
+            const SAFE_ERROR_MAP = {
+                'unavailable-id': TRANSLATIONS[currentLang].idTakenError,
+                'network': TRANSLATIONS[currentLang].errNetwork,
+                'peer-unavailable': TRANSLATIONS[currentLang].errPeerUnavailable
+            };
+            errDiv.innerText = SAFE_ERROR_MAP[err.type] || `${TRANSLATIONS[currentLang].errUnknown}: ${err.type}`;
         }
 
         function connectToPeer() {
@@ -420,7 +457,7 @@
             const btn = document.getElementById('btn-connect');
             btn.innerText = "..."; btn.disabled = true;
             setupConn(peer.connect(target));
-            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Retry"; btn.disabled = false; } }, 5000);
+            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Réessayer"; btn.disabled = false; } }, 5000);
         }
 
         function setupConn(c) {
@@ -435,23 +472,48 @@
             conn.on('close', () => { alert("Déconnecté"); location.reload(); });
         }
 
+        // --- MIME Validation ---
+        const ALLOWED_FILE_TYPES = {
+            'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/gif': ['.gif'], 'image/webp': ['.webp'],
+            'application/pdf': ['.pdf'], 'application/zip': ['.zip'], 'text/plain': ['.txt'], 'text/csv': ['.csv'],
+            'application/vnd.ms-excel': ['.xls'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+        };
+
+        function validateFile(file) {
+            if (!Object.keys(ALLOWED_FILE_TYPES).includes(file.type) && file.type !== '') return { valid: false, reason: `Type ${file.type} non autorisé` };
+            // Note: empty type happens sometimes, we can be lenient or strict. Here lenient for folder zips.
+            return { valid: true };
+        }
+
+        // --- Messaging ---
         function sendMessage() {
             const inp = document.getElementById('msg-input');
             const txt = inp.value.trim();
             if(!txt) return;
-            
-            let payload = JSON.stringify({ type: 'text', content: txt });
-            let isEncrypted = false;
 
+            // Rate limiting
+            const now = Date.now();
+            if (now - lastMessageTime < 200) {
+                messageCount++;
+                if (messageCount > 5) { alert(TRANSLATIONS[currentLang].msgRateLimit); return; }
+            } else { messageCount = 0; }
+            lastMessageTime = now;
+
+            const payloadObj = { type: 'text', content: txt };
+            sendPayload(payloadObj, txt, false);
+            inp.value = '';
+        }
+
+        function sendPayload(obj, displayContent, isFile) {
+            let payload = JSON.stringify(obj);
+            let isEncrypted = false;
             if(sharedPassword) {
-                const encrypted = encryptData(payload, sharedPassword);
-                if(encrypted) { payload = encrypted; isEncrypted = true; }
+                const enc = encryptData(payload, sharedPassword);
+                if(enc) { payload = enc; isEncrypted = true; }
             }
-            
             if(conn && conn.open) {
                 conn.send({ data: payload, encrypted: isEncrypted });
-                addMsg(txt, 'sent');
-                inp.value = '';
+                if(displayContent) addMsg(displayContent, 'sent', false);
             }
         }
 
@@ -459,22 +521,35 @@
             let raw = packet.data;
             if(packet.encrypted) {
                 if(!sharedPassword) { addMsg(TRANSLATIONS[currentLang].encryptedMsgReceived, 'info'); return; }
-                const decrypted = decryptData(raw, sharedPassword);
-                if(!decrypted) { addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error'); return; }
-                raw = decrypted;
+                const dec = decryptData(raw, sharedPassword);
+                if(!dec) { addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error'); return; }
+                raw = dec;
             }
             try {
                 const p = JSON.parse(raw);
-                if(p.type === 'text') addMsg(p.content, 'received');
+                
+                if(p.type === 'text') addMsg(p.content, 'received', false);
+                
                 if(p.type === 'file') {
+                    // MIME Check on Receive
+                    if (p.mime && !Object.keys(ALLOWED_FILE_TYPES).includes(p.mime) && p.mime !== 'application/octet-stream') {
+                        addMsg("⛔ Fichier rejeté (Type non autorisé)", 'error');
+                        return;
+                    }
+
+                    const safeName = p.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                     const link = document.createElement('a');
                     link.href = `data:${p.mime};base64,${p.content}`;
-                    link.download = p.name;
+                    link.download = safeName;
                     link.className = "underline font-bold text-blue-400 hover:text-white block mt-1";
-                    link.textContent = `📥 ${p.name}`;
+                    link.textContent = `📥 ${safeName}`;
+                    link.target = "_blank";
+                    // Fallback click for Odoo iframe restrictions
+                    link.onclick = (e) => { e.stopPropagation(); }; 
+                    
                     addMsg(link, 'received', true);
                 }
-            } catch(e) { addMsg("Data Error", 'error'); }
+            } catch(e) { addMsg("Données illisibles", 'error'); }
         }
 
         // --- File Handling (Smart Zip) ---
@@ -482,83 +557,49 @@
             const files = Array.from(input.files);
             if(files.length === 0) return;
             
+            // Validation
+            for (let f of files) {
+                const v = validateFile(f);
+                if (!v.valid) { alert(`Refusé: ${f.name} (${v.reason})`); input.value = ''; return; }
+            }
+            
             const statusArea = document.getElementById('file-status-area');
             const statusText = document.getElementById('file-status-text');
             const loader = document.getElementById('file-progress');
+            statusArea.classList.remove('hidden'); loader.classList.remove('hidden');
             
-            statusArea.classList.remove('hidden');
-            loader.classList.remove('hidden');
-            
-            // Check Total Size with Confirmation
-            let totalSize = 0;
-            files.forEach(f => totalSize += f.size);
+            let totalSize = 0; files.forEach(f => totalSize += f.size);
             if(totalSize > 50 * 1024 * 1024) { 
                 if(!confirm(TRANSLATIONS[currentLang].fileBigConfirm)) {
-                    statusArea.classList.add('hidden');
-                    input.value = '';
-                    return;
+                    statusArea.classList.add('hidden'); input.value = ''; return;
                 }
             }
 
             try {
-                // Logic: Zip only if multiple files OR explicit folder structure
                 const isMultiple = files.length > 1;
                 const isFolder = files.length > 0 && files[0].webkitRelativePath !== "";
                 
                 if (isMultiple || isFolder) {
-                    // ZIP MODE
                     statusText.innerText = `Compression...`;
                     const zip = new JSZip();
-                    for (let f of files) {
-                        const path = f.webkitRelativePath || f.name;
-                        zip.file(path, f);
-                    }
+                    for (let f of files) zip.file(f.webkitRelativePath || f.name, f);
                     const content = await zip.generateAsync({type:"base64"});
-                    await sendPayload({
-                        type: 'file', 
-                        name: `Archive_${Date.now()}.zip`, 
-                        content: content, 
-                        mime: 'application/zip'
-                    });
+                    sendPayload({ type: 'file', name: `Archive_${Date.now()}.zip`, content: content, mime: 'application/zip' }, "📦 Dossier Envoyé", false);
                 } else {
-                    // SINGLE FILE MODE (No Zip)
                     const f = files[0];
                     statusText.innerText = `Envoi: ${f.name}...`;
-                    const base64 = await readFileAsPureBase64(f);
-                    await sendPayload({
-                        type: 'file',
-                        name: f.name,
-                        content: base64,
-                        mime: f.type || 'application/octet-stream'
-                    });
+                    const base64 = await readFileAsBase64(f);
+                    sendPayload({ type: 'file', name: f.name, content: base64, mime: f.type || 'application/octet-stream' }, `${TRANSLATIONS[currentLang].fileSent} ${f.name}`, false);
                 }
-                addMsg(TRANSLATIONS[currentLang].fileSent, 'sent');
             } catch(e) { console.error(e); alert("Erreur: " + e); }
             
-            statusArea.classList.add('hidden');
-            input.value = '';
+            statusArea.classList.add('hidden'); input.value = '';
         }
 
-        async function sendPayload(payloadObj) {
-             let dataToSend = JSON.stringify(payloadObj);
-             let isEncrypted = false;
-             if (sharedPassword) {
-                dataToSend = encryptData(dataToSend, sharedPassword);
-                isEncrypted = true;
-             }
-             if (conn && conn.open) {
-                conn.send({ data: dataToSend, encrypted: isEncrypted });
-             }
-        }
-
-        function readFileAsPureBase64(file) {
+        function readFileAsBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => {
-                    const result = reader.result;
-                    const base64 = result.split(',')[1]; // Remove data URI prefix
-                    resolve(base64);
-                };
+                reader.onload = () => resolve(reader.result.split(',')[1]);
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
@@ -568,61 +609,77 @@
         function addMsg(content, type, isElement = false) {
             const log = document.getElementById('chat-log');
             const d = document.createElement('div');
-            if(type === 'info') { d.className = 'msg-info'; d.innerText = content; }
-            else if(type === 'error') { d.className = 'msg-error'; d.innerText = content; }
+            if(type==='info') { d.className='msg-info'; d.textContent=content; }
+            else if(type==='error') { d.className='msg-error'; d.textContent=content; }
             else {
-                d.className = `msg-bubble ${type === 'sent' ? 'msg-sent' : 'msg-received'}`;
-                if(isElement) d.appendChild(content); 
-                else d.innerText = content;
-                
-                if(!isElement) d.onclick = () => { secureCopy(d.innerText, TRANSLATIONS[currentLang].toastCopied); };
+                d.className = `msg-bubble ${type==='sent'?'msg-sent':'msg-received'} msg-copyable`;
+                if(isElement) {
+                     // If content is an element (like the download link), append it directly
+                     d.appendChild(content);
+                } else {
+                     d.textContent = content;
+                     // Only add copy click if it's text, to avoid blocking link clicks
+                     d.onclick = () => secureCopy(d.textContent, TRANSLATIONS[currentLang].toastCopied);
+                }
             }
-            log.appendChild(d); log.scrollTop = log.scrollHeight;
+            log.appendChild(d); log.scrollTop=log.scrollHeight;
         }
 
         function updateStatusBadge(s) {
             const b = document.getElementById('status-badge');
+            const tSpan = document.getElementById('status-text');
             const t = TRANSLATIONS[currentLang];
-            if(s === 'connect') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${t.statusConnected}`;
-            else if(s === 'waiting') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500"></span> ${t.statusOnlineWaiting}`;
-            else b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> ${t.statusDisconnected}`;
+            if(!b || !tSpan) return;
+            
+            if(s === 'connect') {
+                tSpan.textContent = t.statusConnected;
+                b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> ${t.statusConnected}`;
+            }
+            else if(s === 'waiting') {
+                 b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> ${t.statusOnlineWaiting}`;
+            }
+            else {
+                 b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> ${t.statusDisconnected}`;
+            }
+        }
+
+        function updateSecurityStatusDisplay() {
+            const container = document.getElementById('security-status-container');
+            if(!container) return;
+            
+            container.innerHTML = ''; // Safe clear
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', sharedPassword ? 'lock' : 'unlock');
+            icon.className = `w-3 h-3 ${sharedPassword ? 'text-emerald-500' : 'text-amber-500'}`;
+            
+            const text = document.createElement('span');
+            text.className = sharedPassword ? 'text-emerald-500' : 'text-amber-500';
+            text.textContent = sharedPassword ? TRANSLATIONS[currentLang].securityEncrypted : TRANSLATIONS[currentLang].securityUnencrypted;
+            
+            container.appendChild(icon);
+            container.appendChild(text);
+            lucide.createIcons();
         }
 
         function applyLanguage(lang) {
             currentLang = lang;
             document.querySelectorAll('[data-lang]').forEach(el => {
-                const k = el.getAttribute('data-lang');
-                if(TRANSLATIONS[lang][k]) el.textContent = TRANSLATIONS[lang][k];
+                const k = el.getAttribute('data-lang'); if(TRANSLATIONS[lang][k]) el.textContent=TRANSLATIONS[lang][k];
             });
             document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
-                const k = el.getAttribute('data-lang-placeholder');
-                if(TRANSLATIONS[lang][k]) el.placeholder = TRANSLATIONS[lang][k];
+                const k = el.getAttribute('data-lang-placeholder'); if(TRANSLATIONS[lang][k]) el.placeholder=TRANSLATIONS[lang][k];
             });
-            document.getElementById('help-text-content').innerHTML = TRANSLATIONS[lang].helpContent;
-            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
-            updateSecurityStatus();
-        }
-
-        function updateSecurityStatus() {
-            const el = document.getElementById('security-status');
-            if(!el) return;
-            if(sharedPassword) {
-                el.innerHTML = `<i data-lucide="lock" class="w-3 h-3 inline"></i> ${TRANSLATIONS[currentLang].securityEncrypted}`;
-                el.className = "text-[10px] text-emerald-500";
-            } else {
-                el.innerHTML = `${TRANSLATIONS[currentLang].securityUnencrypted}`;
-                el.className = "text-[10px] text-amber-500";
-            }
-            lucide.createIcons();
+            renderHelp();
+            document.getElementById('current-lang-display').textContent = lang.toUpperCase();
+            updateSecurityStatusDisplay();
         }
 
         function updateTheme(forceDark = null) {
             const root = document.getElementById('p2p-root');
             const icon = document.getElementById('theme-icon');
-            if (forceDark !== null) isDark = forceDark; else isDark = !isDark;
-            
-            if (isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); if(icon) icon.setAttribute('data-lucide', 'moon'); }
-            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); if(icon) icon.setAttribute('data-lucide', 'sun'); }
+            if(forceDark !== null) isDark = forceDark; else isDark = !isDark;
+            if(isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); if(icon) icon.setAttribute('data-lucide','moon'); }
+            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); if(icon) icon.setAttribute('data-lucide','sun'); }
             lucide.createIcons();
         }
 
@@ -630,58 +687,43 @@
         function toggleTheme() { updateTheme(); }
         function forceStop() { if(confirm("Reload?")) location.reload(); }
         function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.add('toast-visible'); setTimeout(()=>t.classList.remove('toast-visible'),2000); }
+        function secureCopy(t, m) { if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast(m)); }
         
-        // Fallback Copy
-        function secureCopy(text, successMsg) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => showToast(successMsg)).catch(() => fallbackCopy(text, successMsg));
-            } else { fallbackCopy(text, successMsg); }
-        }
-        function fallbackCopy(text, successMsg) {
-            const ta = document.createElement("textarea");
-            ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
-            document.body.appendChild(ta); ta.focus(); ta.select();
-            try { if(document.execCommand('copy')) showToast(successMsg); } catch (err) {}
-            document.body.removeChild(ta);
-        }
-
         // Modals
-        function openHelp() { document.getElementById('help-modal').style.display = 'flex'; }
-        function openPasswordModal() { document.getElementById('password-modal').style.display = 'flex'; document.getElementById('modal-pw-input').value = sharedPassword; }
+        function openHelp() { document.getElementById('help-modal').style.display='flex'; applyLanguage(currentLang); }
+        function openPasswordModal() { document.getElementById('password-modal').style.display='flex'; document.getElementById('modal-pw-input').value=sharedPassword; }
         function savePassword() {
             sharedPassword = document.getElementById('modal-pw-input').value.trim();
             const btn = document.getElementById('btn-lock');
             if(sharedPassword) { btn.classList.add('text-emerald-500'); btn.classList.remove('text-slate-400'); showToast("Mot de passe défini"); }
             else { btn.classList.remove('text-emerald-500'); btn.classList.add('text-slate-400'); showToast("Mot de passe retiré"); }
-            updateSecurityStatus(); 
-            // Clear indicator on save/close
-            document.getElementById('password-strength-display').innerText = "";
-            closeModals();
+            updateSecurityStatusDisplay(); document.getElementById('password-strength-display').innerText=""; closeModals();
         }
         function closeModals(e) {
             if(e && e.target.classList.contains('modal-content')) return;
             document.querySelectorAll('.modal-backdrop').forEach(el => el.style.display='none');
-            if(html5QrCode && isScannerRunning) { html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }).catch(()=>{}); }
+            if(html5QrCode && isScannerRunning) { html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }); }
         }
 
-        // QR
+        // QR & Scan
         function showQrCode() {
             const id = document.getElementById('display-my-id').innerText;
-            if(id === '...') return;
-            document.getElementById('qrcode').innerHTML = '';
-            new QRCode(document.getElementById('qrcode'), { text: id, width: 128, height: 128 });
-            document.getElementById('qr-text-display').innerText = id;
-            document.getElementById('qr-modal').style.display = 'flex';
+            if(id==='...') return;
+            document.getElementById('qrcode').innerHTML='';
+            new QRCode(document.getElementById('qrcode'), {text:id, width:128, height:128});
+            document.getElementById('qr-text-display').innerText=id;
+            document.getElementById('qr-modal').style.display='flex';
         }
         function startScanner() {
-            document.getElementById('scanner-modal').style.display = 'flex';
+            document.getElementById('scanner-modal').style.display='flex';
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => {
-                document.getElementById('remote-id-input').value = txt; showToast("QR OK"); closeModals();
-            }).then(() => isScannerRunning=true).catch(e => { alert("Caméra erreur: "+e); closeModals(); });
+            html5QrCode.start({facingMode:"environment"}, {fps:10, qrbox:{width:250, height:250}}, (txt)=>{
+                document.getElementById('remote-id-input').value=txt; showToast("QR OK"); stopScanner();
+            });
+            isScannerRunning=true;
         }
         function stopScanner() { closeModals(); }
-        function toggleCustomName() { const c = document.getElementById('use-custom-name'); document.getElementById('my-id-input').disabled = !c.checked; if(!c.checked) document.getElementById('my-id-input').value = ''; }
+        function toggleCustomName() { const c=document.getElementById('use-custom-name'); document.getElementById('my-id-input').disabled=!c.checked; if(!c.checked) document.getElementById('my-id-input').value=''; }
         function toggleIdReveal() { document.getElementById('display-my-id').classList.toggle('revealed'); lucide.createIcons(); }
         function copyId() { const t = document.getElementById('display-my-id').innerText; if(t!=='...') secureCopy(t, TRANSLATIONS[currentLang].toastCopied); }
 
