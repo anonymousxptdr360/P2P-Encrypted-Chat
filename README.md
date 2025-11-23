@@ -1,76 +1,131 @@
-# 🔒 P2P-Encrypted-Chat: Zero-Trace Secure Messenger
+# 🔒 P2P-Encrypted-Chat: Ephemeral & Serverless Secure Messenger
 
-![Security](https://img.shields.io/badge/Security-AES--256-brightgreen) ![Protocol](https://img.shields.io/badge/Protocol-WebRTC-blue) ![Storage](https://img.shields.io/badge/Storage-RAM%20Only-orange)
+   
 
-**Serverless, peer-to-peer communication tool with client-side AES-256 encryption. Conversations are strictly ephemeral, existing only in volatile memory (RAM), and leave no forensic trace on the disk or server.**
+**A client-side, peer-to-peer communication tool designed for ephemeral, zero-trace exchanges. It establishes a direct encrypted tunnel between two devices without intermediate storage servers.**
 
----
+-----
 
-## 🌐 Access Methods
+## 📥 Access & Deployment
 
-### Method A: Direct Web Access (Convenience)
-Accessible for immediate usage at: **https://stopbordo.odoo.com/transfert**
-> *Note: While convenient, web access introduces minor privacy risks regarding browser caching of the source code assets. For critical anonymity, use Method B.*
+You can use this tool immediately via the web or download the source code for local execution.
 
-### Method B: Ultimate Security Workflow (Recommended)
-To achieve **maximum anonymity** and ensure **zero forensic trace** on your local machine:
+### 🌐 Option A: Live Web Instance (Recommended for Speed)
 
-1. **Download Source:** Get the latest release: [**Download Source Code**](https://github.com/anonymousxptdr360/P2P-Encrypted-Chat/releases/tag/1.1)
-2. **VPN Activation:** Enable your VPN. This masks your public IP address from the WebRTC signaling process and the recipient.
-3. **Sandboxed Environment:** Open the `index.html` file in a **Private/Incognito Window**.
-   * *Technical Reason:* This prevents the browser from caching local assets and ensures the JavaScript Heap memory is cleared immediately upon closure.
-4. **Kill Switch:** When finished, close the **entire browser window**. This triggers the immediate destruction of the RAM context, encryption keys, and conversation history.
+Access the hosted version here:
+👉 **[https://stopbordo.odoo.com/transfert](https://stopbordo.odoo.com/transfert)**
 
----
+> ⚠️ **Operational Security (OpSec) Warning:**
+> If you use the web version, **you must use "Private Browsing" (Incognito Mode)**.
+>
+>   * **Why?** Standard browsing modes cache website assets (HTML/JS files) to your hard drive.
+>   * **Private Mode:** Ensures that absolutely no cache, cookies, or history data remains on your device once the browser window is closed.
 
-## 🛡️ Security Architecture
+### 💻 Option B: Local Execution (Recommended for Paranoia)
 
-### 1. Application Layer Encryption (AES-256)
-Before data is handed to the network layer, it is encrypted locally using `CryptoJS`.
-* **Algorithm:** AES-256 (Advanced Encryption Standard).
-* **Key Derivation:** The encryption key is derived from your shared password.
-* **Security Guarantee:** Even if the WebRTC stream is intercepted or if a malicious actor guesses your ID, the payload remains mathematically indecipherable noise without the exact password.
+For maximum isolation, download the source code and run it locally without relying on the hosted URL.
 
-### 2. Transport Layer Security (WebRTC/DTLS)
-Connections are established via **WebRTC**, which mandates encryption in transit using DTLS (Datagram Transport Layer Security) and SRTP (Secure Real-time Transport Protocol). This prevents Man-in-the-Middle (MitM) attacks on the local network.
+1.  **[Download the source code](https://www.google.com/search?q=https://github.com/anonymousxptdr360/P2P-Encrypted-Chat/archive/refs/heads/main.zip)** (or clone this repository).
+2.  Disconnect from the internet (optional, for air-gapped transfers via local LAN).
+3.  Open `index.html` directly in your browser.
 
-### 3. Volatile Memory Storage (RAM)
-* **No Persistence:** Messages are stored in JavaScript variables within the browser's RAM (Random Access Memory).
-* **No Disk Writes:** unlike standard messaging apps, no database (SQL/NoSQL) or local file storage is used.
-* **Forensic Safety:** Once the power is cut or the process is terminated, the data is physically lost and irretrievable.
+-----
 
----
+## 📖 Overview
 
-## ⚠️ Threat Model & Anonymity
+This application addresses the need for **immediate, installation-free, and forensic-resistant communication**. Unlike traditional messaging platforms (Signal, WhatsApp) that rely on relay servers and local databases, this tool operates entirely within the browser's volatile memory (RAM).
 
-While the **content** is secure, users must understand the distinction between *Confidentiality* and *Anonymity*.
+**Key Characteristics:**
 
-| Threat Vector | Protection Status | Explanation |
+  * **Zero-Knowledge Architecture:** No conversation data is ever sent to a server.
+  * **Ephemeral by Design:** Closing the tab permanently destroys all encryption keys and message history.
+  * **Browser-Based:** No installation required, works on modern browsers (Chrome, Firefox, Safari).
+
+-----
+
+## 🛡️ Security Architecture & Cryptography
+
+The security model relies on a **Shared Secret (Password)** known only to the two peers. This password is never transmitted over the network.
+
+### 1\. Encryption Scheme (Encrypt-then-MAC)
+
+We utilize industry-standard algorithms to ensure Confidentiality, Integrity, and Authenticity.
+
+  * **Key Derivation (PBKDF2):** The shared password is processed through **PBKDF2** (Password-Based Key Derivation Function 2) with **10,000 iterations** and a random **Salt**. This mitigates brute-force and rainbow table attacks.
+  * **Symmetric Encryption (AES-256):** Data is encrypted using **AES-256-CBC** with a unique, random **Initialization Vector (IV)** for every message.
+  * **Message Integrity (HMAC-SHA256):** To prevent ciphertext tampering (bit-flipping attacks), every message is signed with an **HMAC-SHA256**. The application verifies this signature *before* attempting decryption.
+
+### 2\. Transport Security (WebRTC)
+
+The connection is established via **WebRTC**, which enforces encryption in transit using DTLS (Datagram Transport Layer Security) and SRTP (Secure Real-time Transport Protocol). This protects the data stream against passive eavesdropping on the local network.
+
+### 3\. Supply Chain Protection (SRI)
+
+Critical cryptographic libraries (`CryptoJS`, `PeerJS`) are loaded with **Subresource Integrity (SRI)** tags. The browser verifies the SHA-512 hash of the external scripts to ensure they have not been compromised or modified by a third party (CDN hacking).
+
+### 4\. Client-Side Hardening
+
+  * **Anti-XSS (Cross-Site Scripting):** Incoming payloads are treated as untrusted. The application uses strict DOM sanitization: no `innerHTML` injection is allowed. Files and text are rendered safely to prevent code execution.
+  * **Memory Management:** Large files are processed via buffers to prevent browser crashes, but are not written to `localStorage` or `IndexedDB`.
+
+-----
+
+## ⚠️ Threat Model & Limitations
+
+To use this tool effectively, one must understand what it protects against and what it does not.
+
+| Threat Vector | Status | Explanation |
 | :--- | :--- | :--- |
-| **Content Interception** | ✅ **SECURE** | AES-256 makes brute-forcing impossible with a strong password. |
-| **Server Seizure** | ✅ **SECURE** | No server stores data. Only a signaling server is used for the handshake, then the connection is P2P. |
-| **Metadata / IP Leak** | ⚠️ **WARNING** | **WebRTC reveals your IP.** Without a VPN, the recipient can see your public IP address. |
-| **Identity Guessing** | ⚠️ **WARNING** | Using simple IDs (e.g., "test") allows strangers to connect. Always use UUIDs or complex IDs. |
+| **Server Seizure** | ✅ **Protected** | The signaling server (PeerJS) only handles the "handshake". It has no access to the AES keys or the message content. |
+| **Forensic Analysis** | ✅ **Protected** | Since data is stored in RAM, powering off the device or closing the browser leaves no recoverable trace on the hard drive (unlike Signal/Telegram databases). |
+| **Man-in-the-Middle (MitM)** | ⚠️ **Conditional** | Security relies entirely on the **strength of the shared password**. If the password is weak or shared via an insecure channel, an active attacker could intercept the session. |
+| **Metadata / Anonymity** | ❌ **Exposed** | **WebRTC leaks IP addresses.** Without a VPN, the peer (or an attacker) can see your public IP. The signaling server knows that IP 'A' connected to IP 'B'. |
+| **File Size Limits** | 🛑 **Limit** | Due to browser memory constraints, file transfers are limited to **\~50MB**. Larger files may cause the tab to crash (Out of Memory). |
 
----
+-----
 
-## 🛑 Technical Limitations
+## ⚔️ Comparison: vs. Signal / WhatsApp
 
-### File Size Limits (RAM Constraints)
-This tool uses an in-memory buffer for file encryption. It does **not** stream data from the disk.
-* **Consequence:** You cannot send files larger than your available browser RAM.
-* **Limit:** Attempting to send files >500MB - 1GB (depending on your hardware) may cause the browser tab to crash ("Out of Memory").
+This tool is not a replacement for daily messaging apps; it is a specialized tool for specific high-risk or one-off scenarios.
 
-### File Persistence
-If you **download** a file sent via the chat, it is written to your hard drive's "Downloads" folder.
-* **Action Required:** You must manually delete the file and securely empty your trash bin to remove the trace from your disk.
+| Feature | 🟢 P2P Encrypted Chat | 🔵 Signal |
+| :--- | :--- | :--- |
+| **Architecture** | **Decentralized (P2P)** | Centralized Relay Servers |
+| **Identity** | **Anonymous** (No phone/email) | Phone Number Required |
+| **Data Storage** | **None (RAM)** | Encrypted Local Database (Disk) |
+| **Access** | **Web Link** (Instant) | App Installation Required |
+| **Metadata** | High (IP visible) | Minimal (Sealed Sender) |
+| **Asynchronous** | No (Both must be online) | Yes |
+| **Use Case** | **"Burner" / One-time sensitive transfer** | Long-term secure communication |
 
----
+-----
 
-## 🛠️ Quick Usage Guide
+## 🚀 Usage Guide
 
-1. **Activate:** Click **"Activer"**.
-2. **Exchange Credentials:** Share your **ID** via a secure out-of-band channel (e.g., Signal, Matrix).
-3. **Connect:** Input the partner's ID and establish the P2P connection.
-4. **LOCK THE CHANNEL:** Click the **Padlock Icon** 🔓 and enter a **Shared Secret (Password)**.
-   * *Critical:* Both parties must enter the **exact same password**. If characters differ, decryption will fail and messages will appear as errors.
+### 1\. Initialization
+
+  * Open the application.
+  * Click **"Activer"** to generate your temporary Session ID.
+  * **Security Tip:** Use a VPN to mask your IP address before connecting.
+
+### 2\. Connection
+
+  * Share your ID with your peer via a secure out-of-band channel (e.g., encrypted email, Signal).
+  * Your peer inputs your ID and clicks **"Connexion"**. Or simply scan the **QR Code** for proximity pairing.
+
+### 3\. Authentication (The "Handshake")
+
+  * **CRITICAL:** Once connected, click the **Lock Icon (🔓)**.
+  * Enter a strong, pre-agreed **Shared Password**.
+  * Both parties must enter the **exact same password**.
+  * *If the password differs, the HMAC verification will fail, and messages will be rejected.*
+
+### 4\. Termination
+
+  * To destroy all data, simply **close the browser tab** (or the whole window if in Private Mode). No "delete" action is required as nothing was ever written to the disk.
+
+-----
+
+### ⚖️ Disclaimer
+
+*This software is provided "as is", without warranty of any kind. While it implements robust cryptographic standards (AES-256, PBKDF2, HMAC), security is a process, not a product. User operational security (OpSec) regarding password strength and device integrity is paramount.*
