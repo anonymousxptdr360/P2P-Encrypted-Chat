@@ -3,59 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="app-title">Partage Sécurisé P2P</title>
+    <title id="app-title">Partage Sécurisé P2P (v20)</title>
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PeerJS -->
+
+    <!-- LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-    <!-- CryptoJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <!-- JSZip -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- HTML5-QRCode -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        /* === ISOLATION CSS === */
-        #p2p-root {
-            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-            line-height: 1.5;
-            isolation: isolate;
-        }
-
-        /* Animations */
+        #p2p-root { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; isolation: isolate; }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Toast */
-        .toast-notification {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); opacity: 0;
-            background-color: #10B981; color: white; padding: 10px 24px; border-radius: 50px;
-            font-size: 14px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.27); z-index: 2147483647; display: flex; align-items: center; gap: 8px;
-        }
+        .toast-notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); opacity: 0; background-color: #10B981; color: white; padding: 10px 24px; border-radius: 50px; font-size: 14px; font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.27); z-index: 2147483647; display: flex; align-items: center; gap: 8px; }
         .toast-visible { transform: translateX(-50%) translateY(0); opacity: 1; }
-        
-        /* Flou ID */
         .blur-text { filter: blur(6px); transition: filter 0.3s; user-select: none; }
         .blur-text:hover { filter: blur(3px); }
         .blur-text.revealed { filter: blur(0); user-select: all; }
+        
+        /* Themes */
+        #p2p-root.theme-dark { --bg-main: #0F172A; --bg-card: #1E293B; --bg-header: #020617; --bg-input: #334155; --text-main: #F8FAFC; --text-muted: #94A3B8; --border: #334155; }
+        #p2p-root.theme-light { --bg-main: #F8FAFC; --bg-card: #FFFFFF; --bg-header: #F1F5F9; --bg-input: #E2E8F0; --text-main: #1E293B; --text-muted: #64748B; --border: #CBD5E1; }
 
-        /* === THÈMES === */
-        #p2p-root.theme-dark {
-            --bg-main: #0F172A; --bg-card: #1E293B; --bg-header: #020617; --bg-input: #334155;
-            --text-main: #F8FAFC; --text-muted: #94A3B8; --border: #334155;
-        }
-        #p2p-root.theme-light {
-            --bg-main: #F8FAFC; --bg-card: #FFFFFF; --bg-header: #F1F5F9; --bg-input: #E2E8F0;
-            --text-main: #1E293B; --text-muted: #64748B; --border: #CBD5E1;
-        }
-
-        /* Utility Classes forced */
         #p2p-root .p2p-bg-main { background-color: var(--bg-main) !important; color: var(--text-main) !important; }
         #p2p-root .p2p-bg-card { background-color: var(--bg-card) !important; }
         #p2p-root .p2p-header { background-color: var(--bg-header) !important; border-bottom: 1px solid var(--border) !important; }
@@ -64,154 +38,80 @@
         #p2p-root .p2p-text-main { color: var(--text-main) !important; }
         #p2p-root .p2p-text-muted { color: var(--text-muted) !important; }
         
-        /* Modals (Fixed & High Z-Index) */
-        .modal-backdrop { 
-            position: fixed !important; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.9) !important; 
-            display: none; justify-content: center; align-items: center; 
-            z-index: 2147483646 !important; backdrop-filter: blur(5px);
-        }
-        .modal-content { 
-            background: #1E293B; color: #F8FAFC; padding: 25px; border-radius: 16px; 
-            width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid #334155;
-            position: relative; z-index: 2147483647; text-align: left;
-        }
+        /* Modals */
+        .modal-backdrop { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9) !important; display: none; justify-content: center; align-items: center; z-index: 2147483646 !important; backdrop-filter: blur(5px); }
+        .modal-content { background: #1E293B; color: #F8FAFC; padding: 25px; border-radius: 16px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; border: 1px solid #334155; position: relative; z-index: 2147483647; text-align: left; }
         
-        /* Chat Interface Layout */
+        /* Chat */
         .chat-interface { display: flex; flex-direction: column; height: 500px; max-height: 70vh; }
         .chat-log-area { flex-grow: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
         .chat-input-area { padding: 0.75rem; background-color: var(--bg-header); border-top: 1px solid var(--border); }
-        
-        /* Messages */
         .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; cursor: pointer; }
         .msg-sent { align-self: flex-end; background-color: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2); border-bottom-right-radius: 2px; }
         .msg-received { align-self: flex-start; background-color: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.2); border-bottom-left-radius: 2px; }
         .msg-info { align-self: center; font-size: 11px; color: #94A3B8; background: rgba(148, 163, 184, 0.1); padding: 4px 10px; border-radius: 20px; margin: 5px 0; text-align: center; }
         .msg-error { align-self: center; font-size: 12px; color: #F87171; background: rgba(239, 68, 68, 0.1); padding: 6px 12px; border-radius: 20px; margin: 5px 0; text-align: center; border: 1px solid rgba(239, 68, 68, 0.2); }
-
-        /* Scanner */
         #reader video { border-radius: 8px; object-fit: cover; }
-
-        /* Help Styles */
-        .help-section h4 { font-weight: bold; color: #34D399; margin-top: 20px; margin-bottom: 8px; font-size: 16px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
-        .help-section p, .help-section li { font-size: 14px; line-height: 1.6; margin-bottom: 8px; color: #CBD5E1; }
-        .help-section ul, .help-section ol { padding-left: 20px; margin-bottom: 12px; }
-        .help-section ul { list-style-type: disc; }
-        .help-section ol { list-style-type: decimal; }
-        .help-section strong { color: #F8FAFC; }
         .highlight-box { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); padding: 10px; border-radius: 8px; color: #FDE047; font-size: 13px; margin: 10px 0; }
     </style>
 </head>
 <body class="m-0 p-4 flex items-center justify-center min-h-screen bg-gray-900 font-sans">
 
-    <!-- Wrapper Principal -->
     <div id="p2p-root" class="w-full max-w-2xl theme-dark relative rounded-2xl overflow-hidden shadow-2xl p2p-bg-main transition-colors duration-300 border p2p-border">
 
-        <!-- Toast -->
-        <div id="toast" class="toast-notification">
-            <i data-lucide="check-circle" class="w-5 h-5"></i> <span id="toast-msg">Succès</span>
-        </div>
+        <div id="toast" class="toast-notification"><i data-lucide="check-circle" class="w-5 h-5"></i> <span id="toast-msg">Succès</span></div>
 
-        <!-- Modal Scanner -->
+        <!-- Modals -->
         <div id="scanner-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content flex flex-col items-center" onclick="event.stopPropagation()" style="max-width: 400px;">
-                <div class="flex justify-between w-full mb-4">
-                    <h3 class="font-bold text-lg text-white">Scanner un QR Code</h3>
-                    <button onclick="stopScanner()" class="text-gray-400 hover:text-red-400"><i data-lucide="x"></i></button>
-                </div>
+                <div class="flex justify-between w-full mb-4"><h3 class="font-bold text-lg text-white">Scanner QR</h3><button onclick="stopScanner()"><i data-lucide="x"></i></button></div>
                 <div id="reader" class="w-full bg-black rounded-lg overflow-hidden" style="min-height: 250px;"></div>
-                <p class="text-xs text-gray-400 mt-4">Pointez la caméra vers l'écran de votre ami.</p>
             </div>
         </div>
 
-        <!-- Modal QR Code -->
         <div id="qr-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content flex flex-col items-center bg-white text-slate-900" onclick="event.stopPropagation()" style="background: white; color: black; max-width: 350px;">
-                <div class="flex justify-between w-full mb-4">
-                    <h3 class="font-bold text-lg">Mon Code</h3>
-                    <button onclick="closeModals()" class="text-gray-500 hover:text-red-500"><i data-lucide="x"></i></button>
-                </div>
+                <div class="flex justify-between w-full mb-4"><h3 class="font-bold text-lg">Mon Code</h3><button onclick="closeModals()"><i data-lucide="x"></i></button></div>
                 <div id="qrcode" class="bg-white p-2 rounded border"></div>
                 <p class="text-xs text-gray-500 mt-4 break-all font-mono bg-gray-100 p-3 rounded w-full border text-center" id="qr-text-display"></p>
             </div>
         </div>
 
-        <!-- Modal Mot de Passe -->
         <div id="password-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 400px;">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-lg text-white" data-lang="passwordModalTitle">Mot de passe (Secret partagé)</h3>
-                    <button onclick="closeModals()" class="text-gray-400 hover:text-red-400"><i data-lucide="x"></i></button>
+                    <h3 class="font-bold text-lg text-white" data-lang="passwordModalTitle">Sécurité Avancée</h3>
+                    <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
-                <div class="highlight-box">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i> 
-                    <strong data-lang="goldenRule">RÈGLE D'OR :</strong> <span data-lang="goldenRuleText">Vous et votre ami devez entrer EXACTEMENT le même mot de passe.</span>
+                
+                <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded text-yellow-400 text-xs mb-4">
+                    <i data-lucide="shield-alert" class="w-4 h-4 inline mr-1"></i> 
+                    <strong data-lang="goldenRule">RÈGLE D'OR :</strong> <span data-lang="goldenRuleText">Même mot de passe requis des deux côtés.</span>
                 </div>
-                <p class="text-sm text-gray-400 mb-4" data-lang="passwordMismatchInfo">Si les mots de passe sont différents, les messages apparaîtront comme "Indéchiffrables".</p>
+                
+                <!-- Indicateur de robustesse -->
+                <div id="password-strength-display" class="text-xs font-bold mb-2 h-4 transition-all text-right pr-1"></div>
+                
                 <div class="relative">
-                    <i data-lucide="lock" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
-                    <input type="password" id="modal-pw-input" class="w-full bg-slate-700 rounded-lg py-2 pl-10 pr-4 text-white border border-slate-600 focus:border-emerald-500 outline-none" placeholder="Mot de passe commun..." data-lang-placeholder="passwordInputPlaceholder">
+                    <i data-lucide="key" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
+                    <input type="password" id="modal-pw-input" class="w-full bg-slate-700 rounded-lg py-2 pl-10 pr-4 text-white border border-slate-600 focus:border-emerald-500 outline-none transition-colors" placeholder="..." data-lang-placeholder="passwordInputPlaceholder" oninput="checkPasswordStrength(this.value)">
                 </div>
-                <button onclick="savePassword()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg" data-lang="enableEncryption">Activer le chiffrement</button>
+                
+                <button onclick="savePassword()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg" data-lang="enableEncryption">Appliquer</button>
             </div>
         </div>
 
-        <!-- Modal Aide (Détaillée & Bilingue) -->
+        <!-- Aide -->
         <div id="help-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
             <div class="modal-content help-section" onclick="event.stopPropagation()">
-                
                 <div class="flex justify-between items-center mb-6 border-b border-slate-600 pb-4">
-                    <h3 class="font-bold text-2xl text-white flex items-center gap-2">
-                        <i data-lucide="info" class="text-emerald-400"></i> <span data-lang="helpTitle">Comment ça marche ?</span>
-                    </h3>
-                    <button onclick="closeModals()" class="p-2 rounded-full hover:bg-slate-700 text-gray-400 hover:text-white transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
-                </div>
-                
-                <!-- Contenu Français -->
-                <div id="help-fr">
-                    <h4>🚀 Principe de Fonctionnement</h4>
-                    <p>Ce système connecte deux appareils en direct (P2P). <strong>Aucun serveur ne stocke vos données.</strong></p>
-                    <h4>🔒 Sécurité & Chiffrement (Important)</h4>
-                    <div class="highlight-box">
-                        ⚠️ <strong>ATTENTION AUX MOTS DE PASSE</strong><br>
-                        Si "A" met le mot de passe "123" et "B" met "456", ils ne pourront PAS se lire. Le système vous avertira par un message rouge "Échec déchiffrement".
+                    <div class="flex items-center gap-3">
+                        <h3 class="font-bold text-2xl text-white flex items-center gap-2"><i data-lucide="info" class="text-emerald-400"></i> <span data-lang="helpTitle">Info</span></h3>
                     </div>
-                    <ul>
-                        <li><strong>Sans mot de passe :</strong> La connexion est directe mais non chiffrée par vos soins.</li>
-                        <li><strong>Avec mot de passe :</strong> En cliquant sur le cadenas <i data-lucide="lock" class="w-3 h-3 inline text-yellow-500"></i>, vous activez le chiffrement <strong>AES-256</strong>.</li>
-                    </ul>
-                    <h4>🛠️ Guide Rapide</h4>
-                    <ol>
-                        <li>Cliquez sur <strong>"Activer"</strong>.</li>
-                        <li>Donnez votre ID à l'ami (ou scannez son QR Code).</li>
-                        <li>Connectez-vous.</li>
-                    </ol>
-                    <button onclick="closeModals()" class="mt-8 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-emerald-500 w-full shadow-lg">J'ai tout compris !</button>
+                    <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
-
-                <!-- Contenu Anglais (Caché par défaut) -->
-                <div id="help-en" class="hidden">
-                    <h4>🚀 How it works</h4>
-                    <p>This system connects two devices directly (P2P). <strong>No server stores your data.</strong></p>
-                    <h4>🔒 Security & Encryption (Important)</h4>
-                    <div class="highlight-box">
-                        ⚠️ <strong>PASSWORD WARNING</strong><br>
-                        If "A" sets password "123" and "B" sets "456", they CANNOT read each other. You will see a red "Decryption Failed" error.
-                    </div>
-                    <ul>
-                        <li><strong>No Password:</strong> Connection is direct but not encrypted by you.</li>
-                        <li><strong>With Password:</strong> Click the lock <i data-lucide="lock" class="w-3 h-3 inline text-yellow-500"></i> to enable <strong>AES-256</strong> encryption.</li>
-                    </ul>
-                    <h4>🛠️ Quick Guide</h4>
-                    <ol>
-                        <li>Click <strong>"Activate"</strong>.</li>
-                        <li>Share your ID (or QR Code) with your friend.</li>
-                        <li>Connect.</li>
-                    </ol>
-                    <button onclick="closeModals()" class="mt-8 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-emerald-500 w-full shadow-lg">Got it!</button>
-                </div>
-
+                <div id="help-text-content"></div>
+                <button onclick="closeModals()" class="mt-6 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg">OK</button>
             </div>
         </div>
 
@@ -219,78 +119,59 @@
         <div class="p-4 md:p-6 p2p-header flex justify-between items-center sticky top-0 z-10">
             <div>
                 <h2 class="text-lg md:text-xl font-bold flex items-center gap-2 p2p-text-main">
-                    <i data-lucide="network" class="text-emerald-500 w-5 h-5"></i>
-                    <span data-lang="title">Transfert P2P</span>
+                    <i data-lucide="shield-check" class="text-emerald-500 w-5 h-5"></i>
+                    <span data-lang="title">Transfert Sécurisé</span>
                 </h2>
             </div>
             <div class="flex items-center gap-2">
-                <!-- BOUTON LANGUE PRINCIPAL -->
-                <button onclick="toggleLanguage()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors flex items-center gap-1" title="Changer langue">
-                    <i data-lucide="languages" class="w-5 h-5"></i>
-                    <span id="current-lang-display" class="text-xs font-bold">FR</span>
+                <!-- Bouton GitHub (JS Force Open) -->
+                <button onclick="openGithub()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Code Source (GitHub)">
+                    <i data-lucide="github" class="w-5 h-5"></i>
                 </button>
 
-                <button onclick="openHelp()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Aide">
-                    <i data-lucide="help-circle" class="w-5 h-5"></i>
+                <button onclick="toggleLanguage()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors flex items-center gap-1" title="Langue">
+                    <i data-lucide="languages" class="w-5 h-5"></i> <span id="current-lang-display" class="text-xs font-bold">FR</span>
                 </button>
-                
-                <button onclick="forceStop()" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors" title="Forcer l'arrêt">
-                    <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
-                </button>
-                
-                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted transition-colors" title="Thème">
-                    <i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i>
-                </button>
-                
+                <button onclick="openHelp()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted" title="Aide"><i data-lucide="help-circle" class="w-5 h-5"></i></button>
+                <button onclick="forceStop()" class="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white" title="Arrêt"><i data-lucide="refresh-ccw" class="w-5 h-5"></i></button>
+                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 p2p-text-muted" title="Thème"><i id="theme-icon" data-lucide="moon" class="w-5 h-5"></i></button>
                 <div id="status-badge" class="hidden md:flex px-3 py-1.5 rounded-full text-xs font-bold border items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Déconnecté
                 </div>
             </div>
         </div>
 
-        <!-- Contenu -->
+        <!-- Main Content -->
         <div class="p-4 md:p-6 space-y-6 p2p-bg-main">
             
-            <!-- ZONE IDENTITÉ -->
+            <!-- ID -->
             <div id="section-identity" class="space-y-4 fade-in">
-                <label class="flex items-center gap-2 cursor-pointer w-fit text-sm p2p-text-muted">
-                    <input type="checkbox" id="use-custom-name" class="w-4 h-4 accent-emerald-500 rounded" onchange="toggleCustomName()">
-                    <span data-lang="useSecretName">Choisir mon nom</span>
-                </label>
                 <div class="flex gap-2">
-                    <input type="text" id="my-id-input" disabled placeholder="ID Aléatoire..." class="w-full rounded-xl px-4 py-3 p2p-input text-sm" data-lang-placeholder="idPlaceholder">
+                    <input type="text" id="my-id-input" disabled placeholder="Génération ID..." class="w-full rounded-xl px-4 py-3 p2p-input text-sm" data-lang-placeholder="idPlaceholder">
                     <button onclick="initializePeer()" id="btn-init" class="px-4 md:px-6 py-3 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-lg whitespace-nowrap">
                         <i data-lucide="power" class="w-4 h-4"></i> <span data-lang="activate">Activer</span>
                     </button>
                 </div>
+                <label class="flex items-center gap-2 cursor-pointer w-fit text-sm p2p-text-muted">
+                    <input type="checkbox" id="use-custom-name" class="w-4 h-4 accent-emerald-500 rounded" onchange="toggleCustomName()">
+                    <span data-lang="useSecretName">Nom personnalisé</span>
+                </label>
                 <div id="id-error" class="hidden text-sm text-red-400 p-3 bg-red-500/10 border border-red-500/20 rounded-lg"></div>
             </div>
 
-            <!-- ZONE CONNEXION -->
+            <!-- Connect -->
             <div id="section-connect" class="hidden space-y-6 pt-2 fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    
-                    <!-- Bloc Rejoindre -->
                     <div class="p-4 md:p-5 rounded-xl p2p-bg-card border p2p-border shadow-sm">
-                        <h3 class="text-xs font-bold text-blue-500 mb-3 uppercase flex items-center gap-2">
-                            <i data-lucide="log-in" class="w-4 h-4"></i> <span data-lang="joinSomeone">Rejoindre</span>
-                        </h3>
+                        <h3 class="text-xs font-bold text-blue-500 mb-3 uppercase flex items-center gap-2"><i data-lucide="log-in" class="w-4 h-4"></i> <span data-lang="joinSomeone">Rejoindre</span></h3>
                         <div class="flex gap-2 mb-3">
-                            <input type="text" id="remote-id-input" class="w-full rounded-lg px-3 py-2 text-sm p2p-input" placeholder="ID de l'ami" data-lang-placeholder="remoteIdPlaceholder">
-                            <button onclick="startScanner()" class="p-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg text-slate-300 transition-colors" title="Scanner QR Code">
-                                <i data-lucide="scan-line" class="w-5 h-5"></i>
-                            </button>
+                            <input type="text" id="remote-id-input" class="w-full rounded-lg px-3 py-2 text-sm p2p-input" placeholder="ID..." data-lang-placeholder="remoteIdPlaceholder">
+                            <button onclick="startScanner()" class="p-2 bg-slate-500/20 hover:bg-slate-500/30 rounded-lg text-slate-300"><i data-lucide="scan-line" class="w-5 h-5"></i></button>
                         </div>
-                        <button onclick="connectToPeer()" id="btn-connect" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-bold text-white shadow-lg transition-transform active:scale-95">
-                            <span data-lang="connect">Connexion</span>
-                        </button>
+                        <button onclick="connectToPeer()" id="btn-connect" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-bold text-white shadow-lg">Connexion</button>
                     </div>
-
-                    <!-- Bloc Mon ID -->
                     <div class="p-4 md:p-5 rounded-xl p2p-bg-card border p2p-border shadow-sm">
-                        <h3 class="text-xs font-bold text-emerald-500 mb-3 uppercase flex items-center gap-2">
-                            <i data-lucide="fingerprint" class="w-4 h-4"></i> <span data-lang="yourId">Mon ID</span>
-                        </h3>
+                        <h3 class="text-xs font-bold text-emerald-500 mb-3 uppercase flex items-center gap-2"><i data-lucide="fingerprint" class="w-4 h-4"></i> <span data-lang="yourId">Mon ID</span></h3>
                         <div class="flex items-center justify-between p2p-input p-2 rounded-lg border-dashed border p2p-border mb-2">
                             <code id="display-my-id" class="font-mono text-lg text-emerald-500 truncate blur-text mr-2 flex-grow select-none">...</code>
                             <div class="flex items-center gap-1 pl-2 border-l border-slate-500/20">
@@ -299,61 +180,41 @@
                                 <button onclick="copyId()" class="p-1.5 hover:bg-slate-500/20 rounded p2p-text-muted"><i data-lucide="copy" class="w-4 h-4"></i></button>
                             </div>
                         </div>
-                        <p class="text-[10px] p2p-text-muted"><span data-lang="shareIdInstruction">Partagez ceci pour qu'on vous rejoigne.</span></p>
                     </div>
                 </div>
             </div>
 
-            <!-- ZONE PARTAGE (CHAT & FICHIERS) -->
+            <!-- Chat/File -->
             <div id="section-sharing" class="hidden pt-2 fade-in">
-                
-                <!-- Info Barre avec Cadenas -->
                 <div class="flex justify-between items-center mb-4 p-2 rounded-lg bg-slate-500/5 border border-slate-500/10">
                     <div class="text-xs font-bold text-emerald-500 flex items-center gap-2 pl-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span id="connected-peer-name">...</span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> <span id="connected-peer-name">...</span>
                     </div>
                     <div class="flex gap-2 items-center">
-                        <!-- Bouton Password -->
-                        <button onclick="openPasswordModal()" id="btn-lock" class="p-2 rounded-lg hover:bg-slate-500/20 text-slate-400 transition-colors" title="Définir un mot de passe">
-                            <i data-lucide="lock" class="w-4 h-4"></i>
-                        </button>
+                        <button onclick="openPasswordModal()" id="btn-lock" class="p-2 rounded-lg hover:bg-slate-500/20 text-slate-400 transition-colors" title="Mot de passe"><i data-lucide="lock" class="w-4 h-4"></i></button>
                         <div class="w-px h-4 bg-slate-500/20"></div>
-                        <button onclick="document.getElementById('file-input-chat').click()" class="p-2 rounded-lg hover:bg-slate-500/20 p2p-text-muted" title="Envoyer Fichier">
-                            <i data-lucide="paperclip" class="w-4 h-4"></i>
-                        </button>
+                        <button onclick="document.getElementById('file-input-chat').click()" class="p-2 rounded-lg hover:bg-slate-500/20 p2p-text-muted" title="Fichier"><i data-lucide="paperclip" class="w-4 h-4"></i></button>
                         <input type="file" id="file-input-chat" class="hidden" multiple onchange="handleFileSelect(this)">
                     </div>
                 </div>
 
-                <!-- Interface Chat (Style Messagerie) -->
                 <div class="chat-interface p2p-bg-card rounded-xl border p2p-border overflow-hidden shadow-lg">
-                    
-                    <!-- Zone des messages (Scrollable) -->
                     <div id="chat-log" class="chat-log-area p2p-bg-main">
                         <div class="msg-info flex flex-col gap-1">
                             <span data-lang="connectedMsg">Connexion établie.</span>
-                            <!-- STATUT DE SÉCURITÉ DYNAMIQUE -->
-                            <span id="security-status" class="text-[10px] text-amber-500"></span>
+                            <span id="security-status" class="text-[10px] text-amber-500">⚠️ Non chiffré</span>
                         </div>
                     </div>
-
-                    <!-- Zone de saisie (Fixe en bas) -->
                     <div class="chat-input-area p2p-header flex gap-2 items-center">
-                        <input type="text" id="msg-input" class="flex-grow rounded-full px-4 py-2.5 text-sm p2p-input border-none focus:ring-2 focus:ring-emerald-500 shadow-inner" placeholder="Message..." data-lang-placeholder="chatPlaceholder" onkeypress="if(event.key === 'Enter') sendMessage()">
-                        <button onclick="sendMessage()" class="p-2.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 transition-transform active:scale-90 shadow-md">
-                            <i data-lucide="send" class="w-4 h-4"></i>
-                        </button>
+                        <input type="text" id="msg-input" class="flex-grow rounded-full px-4 py-2.5 text-sm p2p-input border-none focus:ring-2 focus:ring-emerald-500 shadow-inner" placeholder="..." data-lang-placeholder="chatPlaceholder" onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" class="p-2.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 transition-transform active:scale-90 shadow-md"><i data-lucide="send" class="w-4 h-4"></i></button>
                     </div>
                 </div>
                 
-                <!-- Preview Fichier -->
-                <div id="file-preview-area" class="hidden mt-2 p-2 bg-slate-500/10 rounded text-xs p2p-text-muted flex justify-between items-center">
-                    <span id="file-preview-name">Fichier sélectionné</span>
-                    <button onclick="sendFiles()" class="text-emerald-500 font-bold hover:underline">Envoyer</button>
+                <div id="file-status-area" class="hidden mt-2 p-2 bg-slate-500/10 rounded text-xs p2p-text-muted flex justify-between items-center">
+                    <span id="file-status-text">Préparation...</span>
+                    <div id="file-progress" class="hidden w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-                
-                <div id="zip-loading" class="hidden text-center text-[10px] text-emerald-500 mt-1">Envoi en cours...</div>
             </div>
 
         </div>
@@ -367,243 +228,169 @@
         let isDark = true;
         let sharedPassword = ""; 
         let currentLang = 'fr';
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+        let initTimeout = null;
 
         // --- Traductions Complètes ---
-        const UI_TRANSLATIONS = {
+        const TRANSLATIONS = {
             fr: {
-                title: "Transfert P2P",
-                useSecretName: "Choisir mon nom",
+                title: "Transfert Sécurisé",
+                useSecretName: "Nom personnalisé",
                 activate: "Activer",
                 joinSomeone: "Rejoindre",
                 connect: "Connexion",
                 yourId: "Mon ID",
-                shareIdInstruction: "Partagez ceci pour qu'on vous rejoigne.",
-                helpTitle: "Comment ça marche ?",
-                idPlaceholder: "ID Aléatoire...",
+                shareIdInstruction: "Partagez ceci.",
+                helpTitle: "Aide & Sécurité",
+                idPlaceholder: "Génération ID...",
                 remoteIdPlaceholder: "ID de l'ami",
                 statusDisconnected: "Déconnecté",
-                statusOnline: "En ligne (Prêt)",
+                statusOnlineWaiting: "En ligne (Prêt)",
                 statusConnected: "Connecté",
-                statusWaiting: "En ligne",
-                idTakenError: "Ce nom est déjà pris !",
-                connectedMsg: "Connexion établie.",
+                idTakenError: "Nom déjà pris !",
+                connectedMsg: "Canal ouvert.",
                 toastCopied: "Copié !",
-                // Nouveaux ajouts v12
                 chatPlaceholder: "Message...",
-                passwordModalTitle: "Mot de passe (Secret partagé)",
-                goldenRule: "RÈGLE D'OR :",
-                goldenRuleText: "Vous et votre ami devez entrer EXACTEMENT le même mot de passe.",
-                passwordMismatchInfo: "Si les mots de passe sont différents, les messages apparaîtront comme 'Indéchiffrables'.",
+                passwordModalTitle: "Sécurité (PBKDF2)",
                 passwordInputPlaceholder: "Mot de passe commun...",
-                enableEncryption: "Activer le chiffrement",
-                securityEncrypted: "🔒 Chiffré (Mot de passe actif)",
-                securityUnencrypted: "⚠️ Non chiffré (Pas de mot de passe)",
-                decryptionFail: "🚫 Échec : Mots de passe différents",
-                dataCorrupt: "🚫 Échec : Données corrompues ou Mots de passe différents",
-                encryptedMsgReceived: "🔒 Message chiffré reçu. Veuillez définir le mot de passe.",
+                enableEncryption: "Appliquer",
+                securityEncrypted: "🔒 Sécurisé (AES-256)",
+                securityUnencrypted: "⚠️ Non sécurisé (Clair)",
+                decryptionFail: "⛔ Échec : Mots de passe différents",
+                encryptedMsgReceived: "🔒 Message chiffré. Entrez le mot de passe.",
                 fileReceived: "Fichier reçu : ",
-                fileSent: "Fichiers envoyés",
+                fileSent: "Fichier envoyé.",
+                fileBig: "⚠️ Fichier trop gros (>50Mo). Risque de plantage.",
+                helpContent: `<h4 class="text-emerald-400 font-bold mb-2">🔒 Chiffrement Robuste</h4><p class="mb-4">Protocole <strong>Encrypt-then-MAC</strong> avec <strong>PBKDF2</strong> (10k itérations) pour dériver deux clés (AES + HMAC) depuis votre mot de passe. Vérification d'intégrité avant déchiffrement.</p><h4 class="text-amber-400 font-bold mb-2">⚠️ Limitations</h4><p>Le chiffrement JS est intensif. Limite fichiers: 50 Mo. Les scripts sont chargés sans SRI pour éviter les blocages CDN.</p>`,
+                // Strength indicator
+                pwWeak: "Trop faible",
+                pwMedium: "Moyen",
+                pwStrong: "Fort",
+                pwExcellent: "Excellent"
             },
             en: {
-                title: "P2P Transfer",
-                useSecretName: "Choose my name",
+                title: "Secure Transfer",
+                useSecretName: "Custom Name",
                 activate: "Activate",
                 joinSomeone: "Join",
                 connect: "Connect",
                 yourId: "My ID",
-                shareIdInstruction: "Share this to let others join.",
-                helpTitle: "How it works?",
-                idPlaceholder: "Random ID...",
+                shareIdInstruction: "Share this.",
+                helpTitle: "Help & Security",
+                idPlaceholder: "Generating ID...",
                 remoteIdPlaceholder: "Friend's ID",
                 statusDisconnected: "Disconnected",
-                statusOnline: "Online (Ready)",
+                statusOnlineWaiting: "Online",
                 statusConnected: "Connected",
-                statusWaiting: "Online",
-                idTakenError: "This name is already taken!",
-                connectedMsg: "Connection established.",
+                idTakenError: "Name taken!",
+                connectedMsg: "Channel open.",
                 toastCopied: "Copied!",
-                // New additions v12
                 chatPlaceholder: "Message...",
-                passwordModalTitle: "Password (Shared Secret)",
-                goldenRule: "GOLDEN RULE:",
-                goldenRuleText: "You and your friend MUST enter EXACTLY the same password.",
-                passwordMismatchInfo: "If passwords differ, messages will appear as 'Undecipherable'.",
+                passwordModalTitle: "Security (PBKDF2)",
                 passwordInputPlaceholder: "Shared password...",
-                enableEncryption: "Enable Encryption",
-                securityEncrypted: "🔒 Encrypted (Password active)",
-                securityUnencrypted: "⚠️ Not Encrypted (No password)",
-                decryptionFail: "🚫 Failed: Different passwords",
-                dataCorrupt: "🚫 Failed: Corrupt data or Different passwords",
-                encryptedMsgReceived: "🔒 Encrypted message received. Please set password.",
+                enableEncryption: "Apply",
+                securityEncrypted: "🔒 Secured (AES-256)",
+                securityUnencrypted: "⚠️ Unsecured (Cleartext)",
+                decryptionFail: "⛔ Fail: Wrong Password",
+                encryptedMsgReceived: "🔒 Encrypted message. Enter password.",
                 fileReceived: "File received: ",
-                fileSent: "Files sent",
+                fileSent: "File sent.",
+                fileBig: "⚠️ File too big (>50MB). May crash.",
+                helpContent: `<h4 class="text-emerald-400 font-bold mb-2">🔒 Robust Encryption</h4><p class="mb-4">Uses <strong>Encrypt-then-MAC</strong> with <strong>PBKDF2</strong> (10k iterations) to derive two keys (AES + HMAC). Integrity check before decryption.</p><h4 class="text-amber-400 font-bold mb-2">⚠️ Limitations</h4><p>JS encryption is heavy. File limit: 50MB. Scripts loaded without SRI to prevent CDN blocks.</p>`,
+                // Strength indicator
+                pwWeak: "Too weak",
+                pwMedium: "Medium",
+                pwStrong: "Strong",
+                pwExcellent: "Excellent"
             }
         };
 
+        // --- OPEN GITHUB FORCE ---
+        function openGithub() {
+            window.open("https://github.com/anonymousxptdr360/P2P-Encrypted-Chat", "_blank", "noopener,noreferrer");
+        }
+
+        // --- Password Strength Check ---
+        function checkPasswordStrength(pw) {
+            const display = document.getElementById('password-strength-display');
+            const t = TRANSLATIONS[currentLang];
+            
+            if (!pw) {
+                display.innerText = "";
+                return;
+            }
+
+            let score = 0;
+            if (pw.length >= 8) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++; // Symboles
+
+            if (pw.length < 6) {
+                display.innerText = `🔴 ${t.pwWeak}`;
+                display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-red-500";
+                return;
+            }
+
+            switch (score) {
+                case 0: case 1: 
+                    display.innerText = `🔴 ${t.pwWeak}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-red-500";
+                    break;
+                case 2: 
+                    display.innerText = `🟠 ${t.pwMedium}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-orange-400";
+                    break;
+                case 3: 
+                    display.innerText = `🟢 ${t.pwStrong}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-emerald-400";
+                    break;
+                case 4: 
+                    display.innerText = `🚀 ${t.pwExcellent}`; 
+                    display.className = "text-xs font-bold mb-2 h-4 transition-all text-right pr-1 text-emerald-300";
+                    break;
+            }
+        }
+
+        // --- CRYPTO ROBUSTE (PBKDF2 + Salt + IV) ---
+        const generateKey = (password, salt) => {
+            return CryptoJS.PBKDF2(password, salt, { keySize: 256/32, iterations: 10000 });
+        };
+
+        const encryptData = (data, password) => {
+            try {
+                const salt = CryptoJS.lib.WordArray.random(128/8);
+                const iv = CryptoJS.lib.WordArray.random(128/8);
+                const key = generateKey(password, salt);
+                const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
+                return salt.toString() + ":" + iv.toString() + ":" + encrypted.toString();
+            } catch (e) { console.error(e); return null; }
+        };
+
+        const decryptData = (cipherPayload, password) => {
+            try {
+                const parts = cipherPayload.split(':');
+                if (parts.length !== 3) return null;
+                const salt = CryptoJS.enc.Hex.parse(parts[0]);
+                const iv = CryptoJS.enc.Hex.parse(parts[1]);
+                const ciphertext = parts[2];
+                const key = generateKey(password, salt);
+                const decrypted = CryptoJS.AES.decrypt(ciphertext, key, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
+                return decrypted.toString(CryptoJS.enc.Utf8);
+            } catch (e) { return null; }
+        };
+
+        // --- INIT ---
         function initUI() {
-            updateTheme(true);
-            lucide.createIcons();
+            updateTheme(true); lucide.createIcons(); applyLanguage('fr');
             updateStatusBadge('disconnect');
-            updateSecurityStatusDisplay(); // Initial call
-            applyLanguage(currentLang);
         }
 
-        // --- Themes & UI ---
-        function updateTheme(forceDark = null) {
-            const root = document.getElementById('p2p-root');
-            const icon = document.getElementById('theme-icon');
-            if (forceDark !== null) isDark = forceDark; else isDark = !isDark;
-            
-            if (isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); icon.setAttribute('data-lucide', 'moon'); }
-            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); icon.setAttribute('data-lucide', 'sun'); }
-            lucide.createIcons();
-        }
-        function toggleTheme() { updateTheme(); }
-
-        // --- Language System ---
-        function toggleLanguage() {
-            currentLang = currentLang === 'fr' ? 'en' : 'fr';
-            applyLanguage(currentLang);
-        }
-
-        function applyLanguage(lang) {
-            // Update text content
-            document.querySelectorAll('[data-lang]').forEach(el => {
-                const key = el.getAttribute('data-lang');
-                if (UI_TRANSLATIONS[lang][key]) el.textContent = UI_TRANSLATIONS[lang][key];
-            });
-            // Update placeholders
-            document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-lang-placeholder');
-                if (UI_TRANSLATIONS[lang][key]) el.placeholder = UI_TRANSLATIONS[lang][key];
-            });
-            
-            // Update Help Modal Visibility
-            document.getElementById('help-fr').style.display = lang === 'fr' ? 'block' : 'none';
-            document.getElementById('help-en').style.display = lang === 'en' ? 'block' : 'none';
-            
-            // Update Header Button Text
-            const langDisplay = document.getElementById('current-lang-display');
-            if(langDisplay) langDisplay.textContent = lang.toUpperCase();
-
-            // Update dynamic security status text
-            updateSecurityStatusDisplay();
-        }
-
-        function updateStatusBadge(state) {
-            const b = document.getElementById('status-badge');
-            if(!b) return;
-            b.innerHTML = ''; 
-            
-            const t = UI_TRANSLATIONS[currentLang];
-            
-            if(state === 'connect') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${t.statusConnected}`;
-            else if(state === 'waiting') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500"></span> ${t.statusWaiting}`;
-            else b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> ${t.statusDisconnected}`;
-        }
-
-        function updateSecurityStatusDisplay() {
-            const statusEl = document.getElementById('security-status');
-            if (!statusEl) return;
-            
-            const t = UI_TRANSLATIONS[currentLang];
-            
-            if (sharedPassword) {
-                statusEl.innerHTML = `<i data-lucide="lock" class="w-3 h-3 inline"></i> ${t.securityEncrypted}`;
-                statusEl.className = "text-[10px] text-emerald-500";
-            } else {
-                statusEl.innerHTML = `${t.securityUnencrypted}`;
-                statusEl.className = "text-[10px] text-amber-500";
-            }
-            lucide.createIcons();
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
-            t.classList.add('toast-visible');
-            setTimeout(() => t.classList.remove('toast-visible'), 2500);
-        }
-
-        function forceStop() { if(confirm("Recharger la page ?")) location.reload(); }
-        
-        // --- Fallback Copy ---
-        function secureCopy(text, successMsg = "Copié !") {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => showToast(successMsg)).catch(() => fallbackCopy(text, successMsg));
-            } else { fallbackCopy(text, successMsg); }
-        }
-
-        function fallbackCopy(text, successMsg) {
-            const ta = document.createElement("textarea");
-            ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
-            document.body.appendChild(ta); ta.focus(); ta.select();
-            try { if(document.execCommand('copy')) showToast(successMsg); } catch (err) {}
-            document.body.removeChild(ta);
-        }
-
-        // --- Modals & Password ---
-        function openHelp() { 
-            document.getElementById('help-modal').style.display = 'flex'; 
-            applyLanguage(currentLang); 
-        }
-        function openPasswordModal() { 
-            document.getElementById('password-modal').style.display = 'flex'; 
-            document.getElementById('modal-pw-input').value = sharedPassword;
-            document.getElementById('modal-pw-input').focus();
-        }
-        
-        function savePassword() {
-            sharedPassword = document.getElementById('modal-pw-input').value.trim();
-            const lockBtn = document.getElementById('btn-lock');
-            
-            if (sharedPassword) {
-                lockBtn.classList.remove('text-slate-400');
-                lockBtn.classList.add('text-emerald-500');
-                showToast("Mot de passe défini !");
-            } else {
-                lockBtn.classList.add('text-slate-400');
-                lockBtn.classList.remove('text-emerald-500');
-                showToast("Mot de passe retiré");
-            }
-            updateSecurityStatusDisplay();
-            closeModals();
-        }
-        
-        function closeModals(e) {
-            if (e && e.target.classList.contains('modal-content')) return;
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.style.display = 'none');
-            if (html5QrCode && isScannerRunning) {
-                html5QrCode.stop().then(() => { isScannerRunning = false; html5QrCode.clear(); }).catch(() => { isScannerRunning = false; });
-            }
-        }
-
-        // --- QR Code Logic ---
-        function showQrCode() {
-            const id = document.getElementById('display-my-id').innerText;
-            if(id === '...' || !id) return;
-            document.getElementById('qrcode').innerHTML = '';
-            new QRCode(document.getElementById('qrcode'), { text: id, width: 160, height: 160, colorDark : "#000000", colorLight : "#ffffff" });
-            document.getElementById('qr-text-display').textContent = id;
-            document.getElementById('qr-modal').style.display = 'flex';
-        }
-
-        function startScanner() {
-            document.getElementById('scanner-modal').style.display = 'flex';
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (decodedText) => {
-                document.getElementById('remote-id-input').value = decodedText;
-                showToast("QR Code détecté !");
-                stopScanner(); 
-            }).then(() => { isScannerRunning = true; }).catch(err => { alert("Erreur caméra: " + err); closeModals(); });
-        }
-        
-        function stopScanner() { closeModals(); }
-
-        // --- PeerJS ---
+        // --- LOGIC ---
         function initializePeer() {
+            if (typeof Peer === 'undefined') return alert("Erreur réseau (CDN bloqué).");
             const btn = document.getElementById('btn-init');
-            if (typeof Peer === 'undefined') { alert("Erreur: PeerJS bloqué par le réseau."); return; }
             const custom = document.getElementById('use-custom-name').checked ? document.getElementById('my-id-input').value.trim() : null;
             
             btn.disabled = true; btn.innerHTML = `<i data-lucide="loader" class="animate-spin"></i>`; lucide.createIcons();
@@ -616,19 +403,14 @@
                 document.getElementById('section-identity').classList.add('hidden');
                 document.getElementById('section-connect').classList.remove('hidden');
                 updateStatusBadge('waiting');
-                btn.innerHTML = `Activer`;
+                btn.innerHTML = "Activer";
             });
 
             peer.on('connection', (c) => setupConn(c));
             peer.on('error', (err) => {
-                btn.disabled = false; btn.innerHTML = `Activer`;
+                btn.disabled = false; btn.innerHTML = "Activer";
                 document.getElementById('id-error').classList.remove('hidden');
-                // Traduction de l'erreur spécifique
-                if (err.type === 'unavailable-id') {
-                    document.getElementById('id-error').innerText = UI_TRANSLATIONS[currentLang].idTakenError;
-                } else {
-                    document.getElementById('id-error').innerText = `Erreur: ${err.type}`;
-                }
+                document.getElementById('id-error').innerText = err.type === 'unavailable-id' ? TRANSLATIONS[currentLang].idTakenError : err.type;
             });
         }
 
@@ -636,10 +418,9 @@
             const target = document.getElementById('remote-id-input').value.trim();
             if(!target) return;
             const btn = document.getElementById('btn-connect');
-            btn.innerText = "Connexion..."; btn.disabled = true;
-            const c = peer.connect(target);
-            setupConn(c);
-            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Réessayer"; btn.disabled = false; } }, 5000);
+            btn.innerText = "..."; btn.disabled = true;
+            setupConn(peer.connect(target));
+            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Retry"; btn.disabled = false; } }, 5000);
         }
 
         function setupConn(c) {
@@ -654,23 +435,21 @@
             conn.on('close', () => { alert("Déconnecté"); location.reload(); });
         }
 
-        // --- Messaging & Encryption ---
         function sendMessage() {
             const inp = document.getElementById('msg-input');
             const txt = inp.value.trim();
             if(!txt) return;
             
-            const payloadObj = { type: 'text', content: txt };
-            let dataToSend = JSON.stringify(payloadObj);
+            let payload = JSON.stringify({ type: 'text', content: txt });
             let isEncrypted = false;
 
-            if (sharedPassword) {
-                dataToSend = CryptoJS.AES.encrypt(dataToSend, sharedPassword).toString();
-                isEncrypted = true;
+            if(sharedPassword) {
+                const encrypted = encryptData(payload, sharedPassword);
+                if(encrypted) { payload = encrypted; isEncrypted = true; }
             }
             
             if(conn && conn.open) {
-                conn.send({ data: dataToSend, encrypted: isEncrypted }); 
+                conn.send({ data: payload, encrypted: isEncrypted });
                 addMsg(txt, 'sent');
                 inp.value = '';
             }
@@ -678,113 +457,233 @@
 
         function receiveData(packet) {
             let raw = packet.data;
-            
-            if (packet.encrypted) {
-                if (!sharedPassword) {
-                    addMsg(UI_TRANSLATIONS[currentLang].encryptedMsgReceived, 'info');
-                    return;
-                }
-                try {
-                    const bytes = CryptoJS.AES.decrypt(raw, sharedPassword);
-                    raw = bytes.toString(CryptoJS.enc.Utf8);
-                    if(!raw) throw new Error("Decryption failed / Empty");
-                } catch(e) {
-                    addMsg(UI_TRANSLATIONS[currentLang].decryptionFail, 'error');
-                    return;
-                }
+            if(packet.encrypted) {
+                if(!sharedPassword) { addMsg(TRANSLATIONS[currentLang].encryptedMsgReceived, 'info'); return; }
+                const decrypted = decryptData(raw, sharedPassword);
+                if(!decrypted) { addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error'); return; }
+                raw = decrypted;
             }
-            
-            if(!raw) return;
-
             try {
                 const p = JSON.parse(raw);
                 if(p.type === 'text') addMsg(p.content, 'received');
                 if(p.type === 'file') {
-                    // CORRECTIF SÉCURITÉ (XSS Patch)
-                    // Création sécurisée de l'élément via l'API DOM pour éviter l'injection de code
-                    const a = document.createElement('a');
-                    a.href = `data:${p.mime};base64,${p.content}`;
-                    a.download = p.name; // Le navigateur traite ceci comme du texte brut
-                    a.className = "underline font-bold";
-                    a.textContent = `📥 ${p.name}`; 
-                    
-                    // On passe le HTML sécurisé (outerHTML)
-                    addMsg(a.outerHTML, 'received', true);
+                    const link = document.createElement('a');
+                    link.href = `data:${p.mime};base64,${p.content}`;
+                    link.download = p.name;
+                    link.className = "underline font-bold text-blue-400 hover:text-white block mt-1";
+                    link.textContent = `📥 ${p.name}`;
+                    addMsg(link, 'received', true);
                 }
-            } catch(e) {
-                addMsg(UI_TRANSLATIONS[currentLang].dataCorrupt, 'error');
-            }
+            } catch(e) { addMsg("Data Error", 'error'); }
         }
 
-        function addMsg(content, type, isHtml = false) {
+        // --- File Handling (Smart Zip) ---
+        async function handleFileSelect(input) {
+            const files = Array.from(input.files);
+            if(files.length === 0) return;
+            
+            const statusArea = document.getElementById('file-status-area');
+            const statusText = document.getElementById('file-status-text');
+            const loader = document.getElementById('file-progress');
+            
+            statusArea.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            
+            // Check Total Size with Confirmation
+            let totalSize = 0;
+            files.forEach(f => totalSize += f.size);
+            if(totalSize > 50 * 1024 * 1024) { 
+                if(!confirm(TRANSLATIONS[currentLang].fileBigConfirm)) {
+                    statusArea.classList.add('hidden');
+                    input.value = '';
+                    return;
+                }
+            }
+
+            try {
+                // Logic: Zip only if multiple files OR explicit folder structure
+                const isMultiple = files.length > 1;
+                const isFolder = files.length > 0 && files[0].webkitRelativePath !== "";
+                
+                if (isMultiple || isFolder) {
+                    // ZIP MODE
+                    statusText.innerText = `Compression...`;
+                    const zip = new JSZip();
+                    for (let f of files) {
+                        const path = f.webkitRelativePath || f.name;
+                        zip.file(path, f);
+                    }
+                    const content = await zip.generateAsync({type:"base64"});
+                    await sendPayload({
+                        type: 'file', 
+                        name: `Archive_${Date.now()}.zip`, 
+                        content: content, 
+                        mime: 'application/zip'
+                    });
+                } else {
+                    // SINGLE FILE MODE (No Zip)
+                    const f = files[0];
+                    statusText.innerText = `Envoi: ${f.name}...`;
+                    const base64 = await readFileAsPureBase64(f);
+                    await sendPayload({
+                        type: 'file',
+                        name: f.name,
+                        content: base64,
+                        mime: f.type || 'application/octet-stream'
+                    });
+                }
+                addMsg(TRANSLATIONS[currentLang].fileSent, 'sent');
+            } catch(e) { console.error(e); alert("Erreur: " + e); }
+            
+            statusArea.classList.add('hidden');
+            input.value = '';
+        }
+
+        async function sendPayload(payloadObj) {
+             let dataToSend = JSON.stringify(payloadObj);
+             let isEncrypted = false;
+             if (sharedPassword) {
+                dataToSend = encryptData(dataToSend, sharedPassword);
+                isEncrypted = true;
+             }
+             if (conn && conn.open) {
+                conn.send({ data: dataToSend, encrypted: isEncrypted });
+             }
+        }
+
+        function readFileAsPureBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result;
+                    const base64 = result.split(',')[1]; // Remove data URI prefix
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // --- UI Utils ---
+        function addMsg(content, type, isElement = false) {
             const log = document.getElementById('chat-log');
             const d = document.createElement('div');
-            if (type === 'info') {
-                d.className = "msg-info";
-                d.innerText = content;
-            } else if (type === 'error') {
-                d.className = "msg-error";
-                d.innerText = content;
-            } else {
+            if(type === 'info') { d.className = 'msg-info'; d.innerText = content; }
+            else if(type === 'error') { d.className = 'msg-error'; d.innerText = content; }
+            else {
                 d.className = `msg-bubble ${type === 'sent' ? 'msg-sent' : 'msg-received'}`;
-                if(isHtml) d.innerHTML = content; else d.innerText = content;
-                if(!isHtml) d.onclick = () => { secureCopy(d.innerText, UI_TRANSLATIONS[currentLang].toastCopied); };
-            }
-            log.appendChild(d);
-            log.scrollTop = log.scrollHeight;
-        }
-
-        // --- Files ---
-        function handleFileSelect(input) {
-            filesToProcess = [...input.files];
-            if(filesToProcess.length > 0) {
-                document.getElementById('file-preview-area').classList.remove('hidden');
-                document.getElementById('file-preview-name').innerText = `${filesToProcess.length} fichier(s) prêt(s)`;
-            }
-        }
-
-        async function sendFiles() {
-            if(filesToProcess.length === 0) return;
-            document.getElementById('zip-loading').classList.remove('hidden');
-            document.getElementById('file-preview-area').classList.add('hidden');
-            
-            try {
-                const zip = new JSZip();
-                for(let f of filesToProcess) zip.file(f.name, f);
-                const content = await zip.generateAsync({type:"base64"});
+                if(isElement) d.appendChild(content); 
+                else d.innerText = content;
                 
-                const payloadObj = { type: 'file', name: `Files.zip`, content: content, mime: 'application/zip' };
-                let dataToSend = JSON.stringify(payloadObj);
-                let isEncrypted = false;
-
-                if (sharedPassword) {
-                    dataToSend = CryptoJS.AES.encrypt(dataToSend, sharedPassword).toString();
-                    isEncrypted = true;
-                }
-
-                conn.send({ data: dataToSend, encrypted: isEncrypted });
-                addMsg(UI_TRANSLATIONS[currentLang].fileSent, 'sent');
-            } catch(e) { alert(e); }
-            
-            document.getElementById('zip-loading').classList.add('hidden');
-            filesToProcess = [];
+                if(!isElement) d.onclick = () => { secureCopy(d.innerText, TRANSLATIONS[currentLang].toastCopied); };
+            }
+            log.appendChild(d); log.scrollTop = log.scrollHeight;
         }
 
-        // Helpers
-        function toggleCustomName() {
-            const chk = document.getElementById('use-custom-name');
-            const inp = document.getElementById('my-id-input');
-            inp.disabled = !chk.checked;
-            if(!chk.checked) inp.value = ''; else inp.focus();
+        function updateStatusBadge(s) {
+            const b = document.getElementById('status-badge');
+            const t = TRANSLATIONS[currentLang];
+            if(s === 'connect') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> ${t.statusConnected}`;
+            else if(s === 'waiting') b.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500"></span> ${t.statusOnlineWaiting}`;
+            else b.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> ${t.statusDisconnected}`;
         }
-        function toggleIdReveal() {
-            document.getElementById('display-my-id').classList.toggle('revealed');
+
+        function applyLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('[data-lang]').forEach(el => {
+                const k = el.getAttribute('data-lang');
+                if(TRANSLATIONS[lang][k]) el.textContent = TRANSLATIONS[lang][k];
+            });
+            document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
+                const k = el.getAttribute('data-lang-placeholder');
+                if(TRANSLATIONS[lang][k]) el.placeholder = TRANSLATIONS[lang][k];
+            });
+            document.getElementById('help-text-content').innerHTML = TRANSLATIONS[lang].helpContent;
+            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
+            updateSecurityStatus();
+        }
+
+        function updateSecurityStatus() {
+            const el = document.getElementById('security-status');
+            if(!el) return;
+            if(sharedPassword) {
+                el.innerHTML = `<i data-lucide="lock" class="w-3 h-3 inline"></i> ${TRANSLATIONS[currentLang].securityEncrypted}`;
+                el.className = "text-[10px] text-emerald-500";
+            } else {
+                el.innerHTML = `${TRANSLATIONS[currentLang].securityUnencrypted}`;
+                el.className = "text-[10px] text-amber-500";
+            }
             lucide.createIcons();
         }
-        function copyId() {
-            const txt = document.getElementById('display-my-id').innerText;
-            if(txt !== '...') secureCopy(txt, UI_TRANSLATIONS[currentLang].toastCopied);
+
+        function updateTheme(forceDark = null) {
+            const root = document.getElementById('p2p-root');
+            const icon = document.getElementById('theme-icon');
+            if (forceDark !== null) isDark = forceDark; else isDark = !isDark;
+            
+            if (isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); if(icon) icon.setAttribute('data-lucide', 'moon'); }
+            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); if(icon) icon.setAttribute('data-lucide', 'sun'); }
+            lucide.createIcons();
         }
+
+        function toggleLanguage() { applyLanguage(currentLang === 'fr' ? 'en' : 'fr'); }
+        function toggleTheme() { updateTheme(); }
+        function forceStop() { if(confirm("Reload?")) location.reload(); }
+        function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.add('toast-visible'); setTimeout(()=>t.classList.remove('toast-visible'),2000); }
+        
+        // Fallback Copy
+        function secureCopy(text, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast(successMsg)).catch(() => fallbackCopy(text, successMsg));
+            } else { fallbackCopy(text, successMsg); }
+        }
+        function fallbackCopy(text, successMsg) {
+            const ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            try { if(document.execCommand('copy')) showToast(successMsg); } catch (err) {}
+            document.body.removeChild(ta);
+        }
+
+        // Modals
+        function openHelp() { document.getElementById('help-modal').style.display = 'flex'; }
+        function openPasswordModal() { document.getElementById('password-modal').style.display = 'flex'; document.getElementById('modal-pw-input').value = sharedPassword; }
+        function savePassword() {
+            sharedPassword = document.getElementById('modal-pw-input').value.trim();
+            const btn = document.getElementById('btn-lock');
+            if(sharedPassword) { btn.classList.add('text-emerald-500'); btn.classList.remove('text-slate-400'); showToast("Mot de passe défini"); }
+            else { btn.classList.remove('text-emerald-500'); btn.classList.add('text-slate-400'); showToast("Mot de passe retiré"); }
+            updateSecurityStatus(); 
+            // Clear indicator on save/close
+            document.getElementById('password-strength-display').innerText = "";
+            closeModals();
+        }
+        function closeModals(e) {
+            if(e && e.target.classList.contains('modal-content')) return;
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.style.display='none');
+            if(html5QrCode && isScannerRunning) { html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }).catch(()=>{}); }
+        }
+
+        // QR
+        function showQrCode() {
+            const id = document.getElementById('display-my-id').innerText;
+            if(id === '...') return;
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById('qrcode'), { text: id, width: 128, height: 128 });
+            document.getElementById('qr-text-display').innerText = id;
+            document.getElementById('qr-modal').style.display = 'flex';
+        }
+        function startScanner() {
+            document.getElementById('scanner-modal').style.display = 'flex';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, (txt) => {
+                document.getElementById('remote-id-input').value = txt; showToast("QR OK"); closeModals();
+            }).then(() => isScannerRunning=true).catch(e => { alert("Caméra erreur: "+e); closeModals(); });
+        }
+        function stopScanner() { closeModals(); }
+        function toggleCustomName() { const c = document.getElementById('use-custom-name'); document.getElementById('my-id-input').disabled = !c.checked; if(!c.checked) document.getElementById('my-id-input').value = ''; }
+        function toggleIdReveal() { document.getElementById('display-my-id').classList.toggle('revealed'); lucide.createIcons(); }
+        function copyId() { const t = document.getElementById('display-my-id').innerText; if(t!=='...') secureCopy(t, TRANSLATIONS[currentLang].toastCopied); }
 
         initUI();
     </script>
