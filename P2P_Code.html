@@ -43,16 +43,19 @@
         .chat-interface { display: flex; flex-direction: column; height: 500px; max-height: 70vh; }
         .chat-log-area { flex-grow: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
         .chat-input-area { padding: 0.75rem; background-color: var(--bg-header); border-top: 1px solid var(--border); }
-        .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; }
-        .msg-text-copy { cursor: pointer; transition: opacity 0.2s; }
-        .msg-text-copy:hover { opacity: 0.8; }
-        
+        .msg-bubble { padding: 8px 12px; border-radius: 12px; max-width: 85%; word-break: break-word; font-size: 14px; position: relative; cursor: pointer; }
         .msg-sent { align-self: flex-end; background-color: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.2); border-bottom-right-radius: 2px; }
         .msg-received { align-self: flex-start; background-color: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.2); border-bottom-left-radius: 2px; }
         .msg-info { align-self: center; font-size: 11px; color: #94A3B8; background: rgba(148, 163, 184, 0.1); padding: 4px 10px; border-radius: 20px; margin: 5px 0; text-align: center; }
         .msg-error { align-self: center; font-size: 12px; color: #F87171; background: rgba(239, 68, 68, 0.1); padding: 6px 12px; border-radius: 20px; margin: 5px 0; text-align: center; border: 1px solid rgba(239, 68, 68, 0.2); }
         #reader video { border-radius: 8px; object-fit: cover; }
         .highlight-box { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); padding: 10px; border-radius: 8px; color: #FDE047; font-size: 13px; margin: 10px 0; }
+        
+        /* Styles pour le contenu de l'aide */
+        .help-section h4 { font-weight: bold; color: #34D399; margin-top: 20px; margin-bottom: 8px; font-size: 16px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+        .help-section p, .help-section li { font-size: 14px; line-height: 1.6; margin-bottom: 8px; color: #CBD5E1; }
+        .help-section ul { list-style-type: disc; padding-left: 20px; margin-bottom: 12px; }
+        .help-section strong { color: #F8FAFC; }
     </style>
 </head>
 <body class="m-0 p-4 flex items-center justify-center min-h-screen bg-gray-900 font-sans">
@@ -105,7 +108,8 @@
                     </div>
                     <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
-                <div id="help-text-content"></div>
+                <!-- Conteneur pour le texte généré par JS -->
+                <div id="help-dom-container"></div>
                 <button onclick="closeModals()" class="mt-6 bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold w-full shadow-lg">OK</button>
             </div>
         </div>
@@ -262,11 +266,14 @@
                 errNetwork: "Erreur réseau",
                 errPeerUnavailable: "Pair introuvable",
                 errUnknown: "Erreur inconnue",
+                // Contenu de l'aide structuré (DOM pur)
                 helpContent: [
-                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Chiffrement Robuste' },
-                    { tag: 'p', class: 'mb-4 text-sm', text: 'Protocole Encrypt-then-MAC avec PBKDF2 (10k itérations) pour dériver deux clés (AES + HMAC). Intégrité vérifiée.' },
-                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Limitations' },
-                    { tag: 'p', class: 'text-sm', text: 'Le chiffrement JS est intensif. Limite fichiers: 50 Mo conseillée. Les scripts sont chargés sans SRI pour éviter les blocages CDN.' }
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🚀 Comment ça marche ?' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Connexion directe (P2P) entre deux appareils. Aucun serveur ne stocke vos fichiers.' },
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Sécurité Maximale' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Si vous mettez un mot de passe, nous utilisons un chiffrement militaire (AES-256 + HMAC). Rien ne passe en clair.' },
+                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Liberté Totale' },
+                    { tag: 'p', class: 'text-sm', text: 'Aucune restriction de type de fichier (.exe, .zip, etc.). Soyez vigilant sur ce que vous téléchargez d\'inconnus !' }
                 ],
                 pwWeak: "Trop faible", pwMedium: "Moyen", pwStrong: "Fort", pwExcellent: "Excellent"
             },
@@ -302,10 +309,12 @@
                 errPeerUnavailable: "Peer unavailable",
                 errUnknown: "Unknown error",
                 helpContent: [
-                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Robust Encryption' },
-                    { tag: 'p', class: 'mb-4 text-sm', text: 'Uses Encrypt-then-MAC with PBKDF2 (10k iterations). Integrity verified.' },
-                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Limitations' },
-                    { tag: 'p', class: 'text-sm', text: 'JS encryption is heavy. Files > 50MB limit recommended.' }
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🚀 How it works?' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Direct connection (P2P) between devices. No server stores your files.' },
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Max Security' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'With a password, we use military-grade encryption (AES-256 + HMAC). Nothing leaves your device unencrypted.' },
+                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Total Freedom' },
+                    { tag: 'p', class: 'text-sm', text: 'No file type restrictions (.exe, .zip, etc.). Be careful what you download from strangers!' }
                 ],
                 pwWeak: "Too weak", pwMedium: "Medium", pwStrong: "Strong", pwExcellent: "Excellent"
             }
@@ -374,9 +383,7 @@
         }
 
         // --- CRYPTO ROBUSTE (PBKDF2 + Salt + IV + HMAC) ---
-        // Encrypt-then-MAC pattern
         const deriveKeys = (password, salt) => {
-            // 512 bits: 256 for AES, 256 for HMAC
             const kdf = CryptoJS.PBKDF2(password, salt, { keySize: 512/32, iterations: 10000 });
             const aesKey = CryptoJS.lib.WordArray.create(kdf.words.slice(0, 8));
             const hmacKey = CryptoJS.lib.WordArray.create(kdf.words.slice(8, 16));
@@ -388,14 +395,10 @@
                 const salt = CryptoJS.lib.WordArray.random(128/8);
                 const iv = CryptoJS.lib.WordArray.random(128/8);
                 const keys = deriveKeys(password, salt);
-                
                 const encrypted = CryptoJS.AES.encrypt(data, keys.aesKey, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
-                
                 // HMAC on Salt + IV + Ciphertext
                 const msgToSign = salt.clone().concat(iv).concat(encrypted.ciphertext);
                 const hmac = CryptoJS.HmacSHA256(msgToSign, keys.hmacKey);
-                
-                // Format: Salt:IV:Ciphertext:HMAC
                 return salt.toString() + ":" + iv.toString() + ":" + hmac.toString() + ":" + encrypted.ciphertext.toString();
             } catch (e) { console.error(e); return null; }
         };
@@ -404,26 +407,17 @@
             try {
                 const parts = cipherPayload.split(':');
                 if (parts.length !== 4) return null;
-                
                 const salt = CryptoJS.enc.Hex.parse(parts[0]);
                 const iv = CryptoJS.enc.Hex.parse(parts[1]);
                 const receivedHmac = parts[2];
                 const ciphertext = CryptoJS.enc.Hex.parse(parts[3]);
-                
                 const keys = deriveKeys(password, salt);
                 
-                // Verify HMAC
                 const msgToVerify = salt.clone().concat(iv).concat(ciphertext);
                 const computedHmac = CryptoJS.HmacSHA256(msgToVerify, keys.hmacKey).toString();
+                if (computedHmac !== receivedHmac) return null; 
                 
-                if (computedHmac !== receivedHmac) return null; // Integrity fail
-                
-                const decrypted = CryptoJS.AES.decrypt(
-                    { ciphertext: ciphertext }, 
-                    keys.aesKey, 
-                    { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC }
-                );
-                
+                const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertext }, keys.aesKey, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
                 return decrypted.toString(CryptoJS.enc.Utf8);
             } catch (e) { return null; }
         };
@@ -540,8 +534,6 @@
             const files = Array.from(input.files);
             if(files.length === 0) return;
             
-            // Remove Filter Here - ALLOW ALL TYPES
-            
             const statusArea = document.getElementById('file-status-area');
             const statusText = document.getElementById('file-status-text');
             const loader = document.getElementById('file-progress');
@@ -549,6 +541,7 @@
             statusArea.classList.remove('hidden');
             loader.classList.remove('hidden');
             
+            // Check Total Size with Confirmation
             let totalSize = 0;
             files.forEach(f => totalSize += f.size);
             if(totalSize > 50 * 1024 * 1024) { 
@@ -560,6 +553,7 @@
             }
 
             try {
+                // Logic: Zip only if multiple files OR explicit folder structure
                 const isMultiple = files.length > 1;
                 const isFolder = files.length > 0 && files[0].webkitRelativePath !== "";
                 
@@ -585,7 +579,7 @@
                         type: 'file',
                         name: f.name,
                         content: base64,
-                        mime: f.type || 'application/octet-stream'
+                        mime: f.type || 'application/octet-stream' // Default MIME if empty
                     });
                 }
                 addMsg(TRANSLATIONS[currentLang].fileSent, 'sent');
@@ -612,7 +606,7 @@
                 const reader = new FileReader();
                 reader.onload = () => {
                     const result = reader.result;
-                    const base64 = result.split(',')[1]; 
+                    const base64 = result.split(',')[1]; // Remove data URI prefix
                     resolve(base64);
                 };
                 reader.onerror = reject;
@@ -627,10 +621,11 @@
             if(type === 'info') { d.className = 'msg-info'; d.innerText = content; }
             else if(type === 'error') { d.className = 'msg-error'; d.innerText = content; }
             else {
-                d.className = `msg-bubble ${type === 'sent' ? 'msg-sent' : 'msg-received'} msg-text-copy`;
+                d.className = `msg-bubble ${type === 'sent' ? 'msg-sent' : 'msg-received'}`;
                 if(isElement) d.appendChild(content); 
                 else d.innerText = content;
                 
+                // Clic uniquement sur le message (pas le lien) pour copier
                 if(!isElement) d.onclick = () => { secureCopy(d.innerText, TRANSLATIONS[currentLang].toastCopied); };
             }
             log.appendChild(d); log.scrollTop = log.scrollHeight;
@@ -709,9 +704,7 @@
             const btn = document.getElementById('btn-lock');
             if(sharedPassword) { btn.classList.add('text-emerald-500'); btn.classList.remove('text-slate-400'); showToast("Mot de passe défini"); }
             else { btn.classList.remove('text-emerald-500'); btn.classList.add('text-slate-400'); showToast("Mot de passe retiré"); }
-            updateSecurityStatus(); 
-            document.getElementById('password-strength-display').innerText = "";
-            closeModals();
+            updateSecurityStatus(); closeModals();
         }
         function closeModals(e) {
             if(e && e.target.classList.contains('modal-content')) return;
