@@ -25,7 +25,7 @@ Access the hosted version here:
 
 For maximum isolation, download the source code and run it locally without relying on the hosted URL.
 
-1.  **[Download the source code](https://github.com/anonymousxptdr360/P2P-Encrypted-Chat/releases/tag/2.1)** (or clone this repository).
+1.  **[Download the source code](https://github.com/anonymousxptdr360/P2P-Encrypted-Chat/releases/tag/2.2)** (or clone this repository).
 2.  Disconnect from the internet (optional, for air-gapped transfers via local LAN).
 3.  Open `index.html` directly in your browser.
 
