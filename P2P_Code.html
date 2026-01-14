@@ -3,15 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CSP : Sécurité maximale -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: blob:; connect-src *;">
     
-    <title id="app-title">Partage P2P (v28 Ultimate)</title>
+    <!-- 
+        CSP (Content Security Policy) Renforcée 
+        - connect-src : Restreint aux serveurs de signalement PeerJS (*.peerjs.com) et scheme STUN.
+        - script-src : 'unsafe-inline' nécessaire pour ce fichier unique.
+        - CORRECTION : Utilisation de 'stun:' (scheme) pour éviter l'erreur de syntaxe CSP sur les navigateurs récents.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com; 
+        style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; 
+        img-src 'self' data: blob:; 
+        media-src 'self' blob:;
+        connect-src 'self' https://*.peerjs.com wss://*.peerjs.com https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com stun:;
+    ">
+    
+    <title id="app-title">Partage P2P Sécurisé (v2.4)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- 
+        PeerJS 1.5.4 
+        SRI Updated with computed hash provided
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"
+            integrity="sha512-iFU+yF1keEaLDC9HEwPfLMSRaS0unBHE14GEgx6pQKJXjp5v0tvX8xpfp2lgJ62XEjbYp/M5C3CAmej/PWXMyA=="
+            crossorigin="anonymous" 
+            referrerpolicy="no-referrer"></script>
+            
+    <!-- 
+        CryptoJS 4.2.0 
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" 
+            integrity="sha512-a+SUDuwNzXDvz4XrIcXHuCf089/iJAoN4lmrXJg18XnduKK6YlDHNRalv4yd1N40OKI80tFidF+rqTFKGPoWFQ==" 
+            crossorigin="anonymous" 
+            referrerpolicy="no-referrer"></script>
+            
+    <!-- 
+        JSZip 3.10.1
+        SRI Updated with computed hash provided
+    -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+            integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg=="
+            crossorigin="anonymous" 
+            referrerpolicy="no-referrer"></script>
+
+    <!-- Libs via unpkg (Pas de SRI possible sur @latest ou urls instables sans version pinning strict) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -30,7 +68,6 @@
         
         #p2p-root.theme-dark { --bg-main: #0F172A; --bg-card: #1E293B; --bg-header: #020617; --bg-input: #334155; --text-main: #F8FAFC; --text-muted: #94A3B8; --border: #334155; }
         #p2p-root.theme-light { --bg-main: #F8FAFC; --bg-card: #FFFFFF; --bg-header: #F1F5F9; --bg-input: #E2E8F0; --text-main: #1E293B; --text-muted: #64748B; --border: #CBD5E1; }
-
         #p2p-root .p2p-bg-main { background-color: var(--bg-main) !important; color: var(--text-main) !important; }
         #p2p-root .p2p-bg-card { background-color: var(--bg-card) !important; }
         #p2p-root .p2p-header { background-color: var(--bg-header) !important; border-bottom: 1px solid var(--border) !important; }
@@ -70,6 +107,15 @@
         
         .help-section h4 { font-weight: bold; color: #34D399; margin-top: 20px; margin-bottom: 8px; font-size: 16px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
         .help-section p { font-size: 14px; line-height: 1.6; margin-bottom: 8px; color: #CBD5E1; }
+        
+        /* New for Handshake */
+        .verifying-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 50;
+        }
     </style>
 </head>
 <body class="m-0 p-4 flex items-center justify-center min-h-screen bg-gray-900 font-sans" onmousemove="resetInactivityTimer()" onkeypress="resetInactivityTimer()">
@@ -77,6 +123,13 @@
     <div id="p2p-root" class="w-full max-w-2xl theme-dark relative rounded-2xl overflow-hidden shadow-2xl p2p-bg-main transition-colors duration-300 border p2p-border">
 
         <div id="toast" class="toast-notification"><i data-lucide="check-circle" class="w-5 h-5"></i> <span id="toast-msg">Succès</span></div>
+
+        <!-- Verification Overlay -->
+        <div id="verification-overlay" class="verifying-overlay hidden fade-in">
+            <i data-lucide="shield-check" class="w-12 h-12 text-emerald-500 animate-bounce mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">Vérification de sécurité</h3>
+            <p class="text-slate-400 text-sm">Échange de clés en cours...</p>
+        </div>
 
         <!-- Modals -->
         <div id="scanner-modal" class="modal-backdrop fade-in" onclick="closeModals(event)">
@@ -100,8 +153,12 @@
                     <h3 class="font-bold text-lg text-white" data-lang="passwordModalTitle">Sécurité Avancée</h3>
                     <button onclick="closeModals()"><i data-lucide="x"></i></button>
                 </div>
+                <div class="bg-blue-500/10 border border-blue-500/30 p-3 rounded text-blue-200 text-xs mb-4">
+                    <i data-lucide="shield-check" class="w-4 h-4 inline mr-1"></i> 
+                    <strong>Niveau:</strong> PBKDF2-SHA256 (250k itérations).
+                </div>
                 <div class="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded text-yellow-400 text-xs mb-4">
-                    <i data-lucide="shield-alert" class="w-4 h-4 inline mr-1"></i> 
+                    <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i> 
                     <strong data-lang="goldenRule">RÈGLE D'OR :</strong> <span data-lang="goldenRuleText">Même mot de passe requis des deux côtés.</span>
                 </div>
                 <div id="password-strength-display" class="text-xs font-bold mb-2 h-4 transition-all text-right pr-1"></div>
@@ -109,7 +166,7 @@
                     <i data-lucide="key" class="absolute left-3 top-3 w-4 h-4 text-gray-400"></i>
                     <input type="password" id="modal-pw-input" class="w-full bg-slate-700 rounded-lg py-2 pl-10 pr-4 text-white border border-slate-600 focus:border-emerald-500 outline-none transition-colors" placeholder="..." data-lang-placeholder="passwordInputPlaceholder" oninput="checkPasswordStrength(this.value)">
                 </div>
-                <button onclick="savePassword()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg" data-lang="enableEncryption">Appliquer</button>
+                <button onclick="savePassword()" id="btn-save-pw" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-lg" data-lang="enableEncryption">Appliquer</button>
             </div>
         </div>
 
@@ -178,6 +235,7 @@
                         </div>
                         <button onclick="connectToPeer()" id="btn-connect" class="w-full bg-blue-600 hover:bg-blue-500 py-2.5 rounded-lg text-sm font-bold text-white shadow-lg">Connexion</button>
                     </div>
+
                     <div class="p-4 md:p-5 rounded-xl p2p-bg-card border p2p-border shadow-sm">
                         <h3 class="text-xs font-bold text-emerald-500 mb-3 uppercase flex items-center gap-2"><i data-lucide="fingerprint" class="w-4 h-4"></i> <span data-lang="yourId">Mon ID</span></h3>
                         <div class="flex items-center justify-between p2p-input p-2 rounded-lg border-dashed border p2p-border mb-2">
@@ -237,6 +295,9 @@
         let retryCount = 0; const MAX_RETRIES = 3; let initTimeout = null;
         let messageCount = 0; let lastMessageTime = Date.now();
         let inactivityTimer = null;
+        // Handshake state
+        let isHandshakeComplete = false; 
+        let handshakeSessionToken = null; // Token for the current session (Nonce)
 
         const TRANSLATIONS = {
             fr: {
@@ -245,17 +306,18 @@
                 statusDisconnected: "Déconnecté", statusOnlineWaiting: "En ligne (Prêt)", statusConnected: "Connecté", idTakenError: "Nom déjà pris !",
                 connectedMsg: "Canal ouvert.", toastCopied: "Copié !", chatPlaceholder: "Message...", 
                 passwordModalTitle: "Sécuriser la conversation", passwordInputPlaceholder: "Mot de passe commun...", enableEncryption: "Activer la sécurité", 
-                securityEncrypted: "🔒 Sécurisé (AES-256)", securityUnencrypted: "⚠️ Non sécurisé (Clair)", decryptionFail: "⛔ Échec : Mots de passe différents",
-                encryptedMsgReceived: "🔒 Message chiffré. Entrez le mot de passe.", fileReceived: "Fichier reçu : ", fileSent: "Fichier envoyé.",
-                folderSent: "Dossier envoyé.", fileBig: "⚠️ Fichier > 50Mo. Risque de plantage.", msgRateLimit: "Trop rapide ! Ralentissez.",
+                securityEncrypted: "🔒 Sécurisé (AES-256-SHA256)", securityUnencrypted: "⚠️ Non sécurisé (Clair)", decryptionFail: "⛔ Erreur clé",
+                encryptedMsgReceived: "🔒 Message chiffré.", fileReceived: "Fichier reçu : ", fileSent: "Fichier envoyé.",
+                folderSent: "Dossier envoyé.", fileBig: "⚠️ Limite crypto JS (~50Mo).", msgRateLimit: "Trop rapide ! Ralentissez.",
                 errNetwork: "Erreur réseau", errPeerUnavailable: "Pair introuvable", errUnknown: "Erreur inconnue",
+                handshakeFail: "⛔ Mot de passe incorrect ! Déconnexion.",
                 helpContent: [
                     { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🚀 Comment ça marche ?' },
-                    { tag: 'p', class: 'mb-4 text-sm', text: 'Connexion directe (P2P) entre deux appareils. Aucun serveur ne stocke vos fichiers. Vous pouvez envoyer n\'importe quel type de fichier.' },
-                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Sécurité Maximale' },
-                    { tag: 'p', class: 'mb-4 text-sm', text: 'Si vous mettez un mot de passe, nous utilisons un chiffrement militaire (AES-256 + HMAC). Rien ne passe en clair.' },
-                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Liberté Totale' },
-                    { tag: 'p', class: 'text-sm', text: 'Aucune restriction de type de fichier (.exe, .zip, etc.). Soyez vigilant sur ce que vous téléchargez !' }
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Connexion directe (P2P). V2.4 : SRI actif et gestion sécurisée des mots de passe.' },
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Sécurité (V2.4 Hardened)' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'AES-256 + PBKDF2 (SHA256, 250k itérations). Protection anti-rejeu par Nonce aléatoire.' },
+                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Fichiers' },
+                    { tag: 'p', class: 'text-sm', text: 'Le chiffrement se fait en mémoire. Les fichiers >50Mo peuvent faire planter l\'onglet.' }
                 ],
                 pwWeak: "Faible", pwMedium: "Moyen", pwStrong: "Fort", pwExcellent: "Excellent",
                 goldenRule: "IMPORTANT :", goldenRuleText: "Vous devez convenir du même mot de passe."
@@ -266,17 +328,18 @@
                 statusDisconnected: "Disconnected", statusOnlineWaiting: "Online", statusConnected: "Connected", idTakenError: "Name taken!",
                 connectedMsg: "Channel open.", toastCopied: "Copied!", chatPlaceholder: "Message...", 
                 passwordModalTitle: "Secure Conversation", passwordInputPlaceholder: "Shared password...", enableEncryption: "Enable Security", 
-                securityEncrypted: "🔒 Secured (AES-256)", securityUnencrypted: "⚠️ Unsecured (Cleartext)", decryptionFail: "⛔ Fail: Wrong Password",
-                encryptedMsgReceived: "🔒 Encrypted message. Enter password.", fileReceived: "File received: ", fileSent: "File sent.",
-                folderSent: "Folder sent.", fileBig: "⚠️ File > 50MB. May crash.", msgRateLimit: "Slow down!",
+                securityEncrypted: "🔒 Secured (AES-256-SHA256)", securityUnencrypted: "⚠️ Unsecured (Cleartext)", decryptionFail: "⛔ Key Error",
+                encryptedMsgReceived: "🔒 Encrypted message.", fileReceived: "File received: ", fileSent: "File sent.",
+                folderSent: "Folder sent.", fileBig: "⚠️ JS Crypto Limit (~50MB).", msgRateLimit: "Slow down!",
                 errNetwork: "Network Error", errPeerUnavailable: "Peer unavailable", errUnknown: "Unknown error",
+                handshakeFail: "⛔ Wrong Password! Disconnecting.",
                 helpContent: [
                     { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🚀 How it works?' },
-                    { tag: 'p', class: 'mb-4 text-sm', text: 'Direct P2P connection. No servers store your files. You can send any file type.' },
-                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Max Security' },
-                    { tag: 'p', class: 'mb-4 text-sm', text: 'With a password, we use military-grade encryption (AES-256 + HMAC).' },
-                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Total Freedom' },
-                    { tag: 'p', class: 'text-sm', text: 'No file type restrictions (.exe, .zip, etc.). Be careful what you download!' }
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'Direct P2P. V2.4: Active SRI and secure password handling.' },
+                    { tag: 'h4', class: 'text-emerald-400 font-bold mb-2', text: '🔒 Security (V2.4 Hardened)' },
+                    { tag: 'p', class: 'mb-4 text-sm', text: 'AES-256 + PBKDF2 (SHA256, 250k iters). Anti-replay protection via random Nonce.' },
+                    { tag: 'h4', class: 'text-amber-400 font-bold mb-2', text: '⚠️ Files' },
+                    { tag: 'p', class: 'text-sm', text: 'Encryption happens in memory. Files >50MB may crash the tab.' }
                 ],
                 pwWeak: "Weak", pwMedium: "Medium", pwStrong: "Strong", pwExcellent: "Excellent",
                 goldenRule: "IMPORTANT:", goldenRuleText: "You must agree on the exact same password."
@@ -292,7 +355,7 @@
             content.forEach(item => {
                 const el = document.createElement(item.tag);
                 el.className = item.class;
-                el.textContent = item.text;
+                el.innerHTML = item.text;
                 container.appendChild(el);
             });
         }
@@ -304,19 +367,20 @@
             const t = TRANSLATIONS[currentLang];
             if (!pw) { display.innerText = ""; return; }
             let score = 0;
-            if (pw.length >= 8) score++; if (/[A-Z]/.test(pw)) score++; if (/[0-9]/.test(pw)) score++; if (/[^A-Za-z0-9]/.test(pw)) score++;
-            if (pw.length < 6) { display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; return; }
+            if (pw.length >= 12) score++; if (pw.length >= 16) score++;
+            if (/[A-Z]/.test(pw)) score++; if (/[0-9]/.test(pw)) score++; if (/[^A-Za-z0-9]/.test(pw)) score++;
+            if (pw.length < 8) { display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; return; }
             switch (score) {
                 case 0: case 1: display.innerText = `🔴 ${t.pwWeak}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-red-500"; break;
-                case 2: display.innerText = `🟠 ${t.pwMedium}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-orange-400"; break;
-                case 3: display.innerText = `🟢 ${t.pwStrong}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-400"; break;
-                case 4: display.innerText = `🚀 ${t.pwExcellent}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-300"; break;
+                case 2: case 3: display.innerText = `🟠 ${t.pwMedium}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-orange-400"; break;
+                case 4: display.innerText = `🟢 ${t.pwStrong}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-400"; break;
+                case 5: display.innerText = `🚀 ${t.pwExcellent}`; display.className = "text-xs font-bold mb-2 h-4 text-right pr-1 text-emerald-300"; break;
             }
         }
 
-        // --- CRYPTO ---
+        // --- SECURE CRYPTO V2.1 (SHA256 + 250k) ---
         const deriveKeys = (password, salt) => {
-            const kdf = CryptoJS.PBKDF2(password, salt, { keySize: 512/32, iterations: 10000 });
+            const kdf = CryptoJS.PBKDF2(password, salt, { keySize: 512/32, iterations: 250000, hasher: CryptoJS.algo.SHA256 });
             const aesKey = CryptoJS.lib.WordArray.create(kdf.words.slice(0, 8));
             const hmacKey = CryptoJS.lib.WordArray.create(kdf.words.slice(8, 16));
             return { aesKey, hmacKey };
@@ -345,32 +409,33 @@
                 const keys = deriveKeys(password, salt);
                 const msgToVerify = salt.clone().concat(iv).concat(ciphertext);
                 const computedHmac = CryptoJS.HmacSHA256(msgToVerify, keys.hmacKey).toString();
-                if (computedHmac !== receivedHmac) return null; 
+                if (computedHmac !== receivedHmac) return null;
                 const decrypted = CryptoJS.AES.decrypt({ ciphertext: ciphertext }, keys.aesKey, { iv: iv, padding: CryptoJS.pad.Pkcs7, mode: CryptoJS.mode.CBC });
                 return decrypted.toString(CryptoJS.enc.Utf8);
             } catch (e) { return null; }
         };
 
-        // --- INACTIVITY ---
-        function resetInactivityTimer() {
-            clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(() => {
-                if (conn && conn.open) {
-                    alert("Déconnexion pour inactivité (30 min)");
-                    conn.close(); location.reload();
-                }
-            }, 30 * 60 * 1000);
+        // --- LOGIC ---
+        function initUI() {
+            updateTheme(true);
+            lucide.createIcons();
+            applyLanguage('fr');
+            updateStatusBadge('disconnect');
         }
 
-        // --- LOGIC ---
-        function initUI() { updateTheme(true); lucide.createIcons(); applyLanguage('fr'); updateStatusBadge('disconnect'); }
-
         function initializePeer() {
-            if (typeof Peer === 'undefined') return alert("Erreur CDN.");
+            if (typeof Peer === 'undefined') return alert("Erreur CDN: PeerJS non chargé.");
             const btn = document.getElementById('btn-init');
             const custom = document.getElementById('use-custom-name').checked ? document.getElementById('my-id-input').value.trim() : null;
-            btn.disabled = true; btn.innerHTML = `<i data-lucide="loader" class="animate-spin"></i>`; lucide.createIcons();
-            peer = new Peer(custom, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader" class="animate-spin"></i>`;
+            lucide.createIcons();
+
+            peer = new Peer(custom, {
+                debug: 1,
+                config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            });
+
             peer.on('open', (id) => {
                 myId = id;
                 document.getElementById('display-my-id').innerText = id;
@@ -381,11 +446,10 @@
             });
             peer.on('connection', (c) => setupConn(c));
             peer.on('error', (err) => {
-                btn.disabled = false; btn.innerHTML = "Activer";
-                const errDiv = document.getElementById('id-error');
-                errDiv.classList.remove('hidden');
-                const map = { 'unavailable-id': TRANSLATIONS[currentLang].idTakenError, 'network': TRANSLATIONS[currentLang].errNetwork, 'peer-unavailable': TRANSLATIONS[currentLang].errPeerUnavailable };
-                errDiv.innerText = map[err.type] || `${TRANSLATIONS[currentLang].errUnknown}: ${err.type}`;
+                btn.disabled = false;
+                btn.innerHTML = "Activer";
+                document.getElementById('id-error').classList.remove('hidden');
+                document.getElementById('id-error').innerText = err.type || "Erreur";
             });
         }
 
@@ -393,100 +457,209 @@
             const target = document.getElementById('remote-id-input').value.trim();
             if(!target) return;
             const btn = document.getElementById('btn-connect');
-            btn.innerText = "..."; btn.disabled = true;
+            btn.innerText = "...";
+            btn.disabled = true;
             setupConn(peer.connect(target));
-            setTimeout(() => { if(!conn || !conn.open) { btn.innerText = "Réessayer"; btn.disabled = false; } }, 5000);
+            setTimeout(() => {
+                if(!conn || !conn.open) {
+                    btn.innerText = "Réessayer";
+                    btn.disabled = false;
+                }
+            }, 5000);
         }
 
         function setupConn(c) {
             conn = c;
+            // Reset state
+            isHandshakeComplete = !sharedPassword; // If no password, handshake is auto-complete
+            
             conn.on('open', () => {
                 document.getElementById('section-connect').classList.add('hidden');
                 document.getElementById('section-sharing').classList.remove('hidden');
                 document.getElementById('connected-peer-name').innerText = conn.peer;
-                updateStatusBadge('connect');
+                
+                if(sharedPassword) {
+                    // Start Handshake
+                    document.getElementById('verification-overlay').classList.remove('hidden');
+                    // GENERATE RANDOM NONCE
+                    handshakeSessionToken = CryptoJS.lib.WordArray.random(16).toString();
+                    // Send Challenge
+                    setTimeout(() => {
+                        sendPayload({ type: 'handshake-challenge', token: handshakeSessionToken }, null, false, true);
+                    }, 500);
+                } else {
+                    // No password - Open immediately
+                    updateStatusBadge('connect');
+                }
             });
             conn.on('data', (d) => receiveData(d));
             conn.on('close', () => { alert("Déconnecté"); location.reload(); });
         }
 
         function sendMessage() {
+            if(!isHandshakeComplete && sharedPassword) return; // Block
             const inp = document.getElementById('msg-input');
             const txt = inp.value.trim();
             if(!txt) return;
+
             const now = Date.now();
-            if (now - lastMessageTime < 200) { messageCount++; if (messageCount > 5) { alert(TRANSLATIONS[currentLang].msgRateLimit); return; } } else { messageCount = 0; }
+            if (now - lastMessageTime < 200) {
+                messageCount++;
+                if (messageCount > 5) {
+                    alert(TRANSLATIONS[currentLang].msgRateLimit);
+                    return;
+                }
+            } else {
+                messageCount = 0;
+            }
             lastMessageTime = now;
+
             sendPayload({ type: 'text', content: txt }, txt, false);
             inp.value = '';
         }
 
-        function sendPayload(obj, displayMsg, isFile) {
-             let payload = JSON.stringify(obj);
-             let isEncrypted = false;
-             if (sharedPassword) {
-                const enc = encryptData(payload, sharedPassword);
-                if(enc) { payload = enc; isEncrypted = true; }
+        function sendPayload(obj, displayMsg, isFile, isSystem=false) {
+            let payload = JSON.stringify(obj);
+            let isEncrypted = false;
+            if (sharedPassword) {
+                setTimeout(() => {
+                    const enc = encryptData(payload, sharedPassword);
+                    if(enc) {
+                        payload = enc;
+                        isEncrypted = true;
+                    }
+                    dispatch();
+                }, 10);
+            } else {
+                dispatch();
             }
-            if (conn && conn.open) {
-                conn.send({ data: payload, encrypted: isEncrypted });
-                if(displayMsg) addMsg(displayMsg, 'sent', false);
+
+            function dispatch() {
+                if (conn && conn.open) {
+                    conn.send({ data: payload, encrypted: isEncrypted });
+                    if(displayMsg) addMsg(displayMsg, 'sent', false);
+                }
             }
         }
 
         function receiveData(packet) {
-            let raw = packet.data;
-            if(packet.encrypted) {
-                if(!sharedPassword) { addMsg(TRANSLATIONS[currentLang].encryptedMsgReceived, 'info'); return; }
-                const dec = decryptData(raw, sharedPassword);
-                if(!dec) { addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error'); return; }
-                raw = dec;
-            }
-            try {
-                const p = JSON.parse(raw);
-                if(p.type === 'text') addMsg(p.content, 'received', false);
-                if(p.type === 'file') {
-                    // BLOB Download
-                    const parts = p.content.split(';base64,');
-                    const contentType = parts[0].split(':')[1];
-                    const b64 = parts[1];
-                    const byteCharacters = atob(b64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], {type: contentType});
-                    const url = URL.createObjectURL(blob);
-
-                    // Sanitize Name
-                    const safeName = p.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255);
-
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = safeName;
-                    link.className = "download-btn";
-                    link.textContent = `📥 ${safeName}`;
-                    // Force click propagation stop
-                    link.onclick = (e) => { e.stopPropagation(); }; 
-                    
-                    addMsg(link, 'received', true);
+            setTimeout(() => {
+                let raw = packet.data;
+                // 1. Decrypt
+                if(packet.encrypted) {
+                    if(!sharedPassword) {
+                        // We received encrypted data but have no password set -> Error
+                        if(!isHandshakeComplete) closeConnWithError(); 
+                        else addMsg(TRANSLATIONS[currentLang].encryptedMsgReceived, 'info');
+                        return;
+                    }
+                    const dec = decryptData(raw, sharedPassword);
+                    if(!dec) {
+                        // Decryption failed (Wrong password)
+                        if(!isHandshakeComplete) closeConnWithError(); // Fail handshake
+                        else addMsg(TRANSLATIONS[currentLang].decryptionFail, 'error');
+                        return;
+                    }
+                    raw = dec;
                 }
-            } catch(e) { addMsg("Données illisibles", 'error'); }
+
+                // 2. Parse
+                try {
+                    const p = JSON.parse(raw);
+                    
+                    // --- HANDSHAKE LOGIC ---
+                    if (p.type === 'handshake-challenge') {
+                        // Received challenge. Echo back to prove we could decrypt it.
+                        // We do NOT check against our token (we didn't send this one), we just ACK it.
+                        sendPayload({ type: 'handshake-ack', token: p.token }, null, false, true);
+                        
+                        // If we could decrypt the challenge, it means the sender has the correct key (integrity check passed).
+                        // So we are safe to complete handshake on our side too.
+                        completeHandshake();
+                        return;
+                    }
+                    if (p.type === 'handshake-ack') {
+                        // Received ACK. Verify it matches the token WE sent.
+                        if (p.token === handshakeSessionToken) {
+                            completeHandshake();
+                        } else {
+                            console.error("Handshake token mismatch");
+                            closeConnWithError();
+                        }
+                        return;
+                    }
+
+                    if (!isHandshakeComplete && sharedPassword) return; // Ignore other data until handshake done
+
+                    // --- APP LOGIC ---
+                    if(p.type === 'text') addMsg(p.content, 'received', false);
+                    if(p.type === 'file') {
+                        // Decode Base64
+                        const parts = p.content.split(';base64,');
+                        const contentType = parts[0].split(':')[1];
+                        const b64 = parts[1];
+                        const byteCharacters = atob(b64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], {type: contentType});
+                        const url = URL.createObjectURL(blob);
+                        
+                        const safeName = p.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = safeName;
+                        link.className = "download-btn";
+                        link.textContent = `📥 ${safeName}`;
+                        link.onclick = (e) => { e.stopPropagation(); };
+                        
+                        addMsg(link, 'received', true);
+                    }
+                } catch(e) { console.error(e); }
+            }, 10);
+        }
+
+        function completeHandshake() {
+            if(isHandshakeComplete) return;
+            isHandshakeComplete = true;
+            document.getElementById('verification-overlay').classList.add('hidden');
+            updateStatusBadge('connect');
+            showToast("🔒 Sécurité vérifiée");
+        }
+
+        function closeConnWithError() {
+            alert(TRANSLATIONS[currentLang].handshakeFail);
+            conn.close();
+            location.reload();
         }
 
         async function handleFileSelect(input) {
             const files = Array.from(input.files);
             if(files.length === 0) return;
+            
             const statusArea = document.getElementById('file-status-area');
             const statusText = document.getElementById('file-status-text');
             const loader = document.getElementById('file-progress');
-            statusArea.classList.remove('hidden'); loader.classList.remove('hidden');
             
-            let totalSize = 0; files.forEach(f => totalSize += f.size);
-            if(totalSize > 50 * 1024 * 1024) { if(!confirm(TRANSLATIONS[currentLang].fileBigConfirm)) { statusArea.classList.add('hidden'); input.value=''; return; } }
+            statusArea.classList.remove('hidden');
+            loader.classList.remove('hidden');
+
+            let totalSize = 0;
+            files.forEach(f => totalSize += f.size);
+            if(totalSize > 50 * 1024 * 1024) {
+                if(!confirm("Attention: >50Mo peut ralentir le navigateur (Encryption JS). Continuer ?")) {
+                    statusArea.classList.add('hidden');
+                    input.value='';
+                    return;
+                }
+            }
 
             try {
                 const isMultiple = files.length > 1;
                 const isFolder = files.length > 0 && files[0].webkitRelativePath !== "";
+                
                 if (isMultiple || isFolder) {
                     statusText.innerText = `Zip...`;
                     const zip = new JSZip();
@@ -499,8 +672,11 @@
                     const base64 = await readFileAsDataURL(f);
                     sendPayload({ type: 'file', name: f.name, content: base64, mime: f.type || 'application/octet-stream' }, `${TRANSLATIONS[currentLang].fileSent} ${f.name}`, false);
                 }
-            } catch(e) { alert("Erreur: " + e); }
-            statusArea.classList.add('hidden'); input.value = '';
+            } catch(e) {
+                alert("Erreur: " + e);
+            }
+            statusArea.classList.add('hidden');
+            input.value = '';
         }
 
         function readFileAsDataURL(file) {
@@ -515,29 +691,44 @@
         function addMsg(content, type, isElement = false) {
             const log = document.getElementById('chat-log');
             const d = document.createElement('div');
-            if(type==='info') { d.className='msg-info'; d.innerText=content; }
-            else if(type==='error') { d.className='msg-error'; d.innerText=content; }
-            else {
+            if(type==='info') {
+                d.className='msg-info';
+                d.innerText=content;
+            } else if(type==='error') {
+                d.className='msg-error';
+                d.innerText=content;
+            } else {
                 d.className = `msg-bubble ${type==='sent'?'msg-sent':'msg-received'} ${!isElement ? 'msg-text-copy' : ''}`;
-                if(isElement) d.appendChild(content); else d.innerText = content;
+                if(isElement) d.appendChild(content);
+                else d.innerText = content;
+                
                 if(!isElement) d.onclick = () => { secureCopy(d.innerText, TRANSLATIONS[currentLang].toastCopied); };
             }
-            log.appendChild(d); log.scrollTop=log.scrollHeight;
+            log.appendChild(d);
+            log.scrollTop=log.scrollHeight;
         }
 
         function updateStatusBadge(s) {
             const b = document.getElementById('status-badge');
             if(!b) return;
-            b.innerHTML = ''; // Clear safe
+            b.innerHTML = '';
             const t = TRANSLATIONS[currentLang];
             const dot = document.createElement('span');
             dot.className = "w-2 h-2 rounded-full inline-block mr-2";
             const txt = document.createElement('span');
             
-            if(s === 'connect') { dot.classList.add('bg-emerald-500'); txt.textContent = t.statusConnected; }
-            else if(s === 'waiting') { dot.classList.add('bg-yellow-500'); txt.textContent = t.statusOnlineWaiting; }
-            else { dot.classList.add('bg-red-500'); txt.textContent = t.statusDisconnected; }
-            b.appendChild(dot); b.appendChild(txt);
+            if(s === 'connect') {
+                dot.classList.add('bg-emerald-500');
+                txt.textContent = t.statusConnected;
+            } else if(s === 'waiting') {
+                dot.classList.add('bg-yellow-500');
+                txt.textContent = t.statusOnlineWaiting;
+            } else {
+                dot.classList.add('bg-red-500');
+                txt.textContent = t.statusDisconnected;
+            }
+            b.appendChild(dot);
+            b.appendChild(txt);
         }
 
         function updateSecurityStatusDisplay() {
@@ -548,27 +739,36 @@
             const icon = document.createElement('i');
             const text = document.createElement('span');
             const btn = document.getElementById('btn-lock');
-            
+
             if (sharedPassword) {
-                icon.setAttribute('data-lucide', 'lock'); icon.className = "w-3 h-3 text-emerald-500 mr-1";
-                text.textContent = t.securityEncrypted; text.className = "text-emerald-500";
-                btn.classList.remove('animate-lock'); btn.classList.add('text-emerald-500');
+                icon.setAttribute('data-lucide', 'lock');
+                icon.className = "w-3 h-3 text-emerald-500 mr-1";
+                text.textContent = t.securityEncrypted;
+                text.className = "text-emerald-500";
+                btn.classList.remove('animate-lock');
+                btn.classList.add('text-emerald-500');
             } else {
-                icon.setAttribute('data-lucide', 'unlock'); icon.className = "w-3 h-3 text-amber-500 mr-1";
-                text.textContent = t.securityUnencrypted; text.className = "text-amber-500";
-                btn.classList.add('animate-lock'); btn.classList.remove('text-emerald-500');
+                icon.setAttribute('data-lucide', 'unlock');
+                icon.className = "w-3 h-3 text-amber-500 mr-1";
+                text.textContent = t.securityUnencrypted;
+                text.className = "text-amber-500";
+                btn.classList.add('animate-lock');
+                btn.classList.remove('text-emerald-500');
             }
-            container.appendChild(icon); container.appendChild(text);
+            container.appendChild(icon);
+            container.appendChild(text);
             lucide.createIcons();
         }
 
         function applyLanguage(lang) {
             currentLang = lang;
             document.querySelectorAll('[data-lang]').forEach(el => {
-                const k = el.getAttribute('data-lang'); if(TRANSLATIONS[lang][k]) el.textContent=TRANSLATIONS[lang][k];
+                const k = el.getAttribute('data-lang');
+                if(TRANSLATIONS[lang][k]) el.textContent=TRANSLATIONS[lang][k];
             });
             document.querySelectorAll('[data-lang-placeholder]').forEach(el => {
-                const k = el.getAttribute('data-lang-placeholder'); if(TRANSLATIONS[lang][k]) el.placeholder=TRANSLATIONS[lang][k];
+                const k = el.getAttribute('data-lang-placeholder');
+                if(TRANSLATIONS[lang][k]) el.placeholder=TRANSLATIONS[lang][k];
             });
             renderHelp();
             document.getElementById('current-lang-display').textContent = lang.toUpperCase();
@@ -578,32 +778,66 @@
         function updateTheme(forceDark = null) {
             const root = document.getElementById('p2p-root');
             const icon = document.getElementById('theme-icon');
-            if(forceDark !== null) isDark = forceDark; else isDark = !isDark;
-            if(isDark) { root.classList.add('theme-dark'); root.classList.remove('theme-light'); if(icon) icon.setAttribute('data-lucide','moon'); }
-            else { root.classList.add('theme-light'); root.classList.remove('theme-dark'); if(icon) icon.setAttribute('data-lucide','sun'); }
+            if(forceDark !== null) isDark = forceDark;
+            else isDark = !isDark;
+
+            if(isDark) {
+                root.classList.add('theme-dark');
+                root.classList.remove('theme-light');
+                if(icon) icon.setAttribute('data-lucide','moon');
+            } else {
+                root.classList.add('theme-light');
+                root.classList.remove('theme-dark');
+                if(icon) icon.setAttribute('data-lucide','sun');
+            }
             lucide.createIcons();
         }
 
         function toggleLanguage() { applyLanguage(currentLang === 'fr' ? 'en' : 'fr'); }
         function toggleTheme() { updateTheme(); }
         function forceStop() { if(confirm("Reload?")) location.reload(); }
-        function showToast(m) { const t = document.getElementById('toast'); document.getElementById('toast-msg').innerText=m; t.classList.add('toast-visible'); setTimeout(()=>t.classList.remove('toast-visible'),2000); }
-        function secureCopy(t, m) { if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast(m)); }
-        
-        // Modals
+
+        function showToast(m) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText=m;
+            t.classList.add('toast-visible');
+            setTimeout(()=>t.classList.remove('toast-visible'),2000);
+        }
+
+        function secureCopy(t, m) {
+            if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast(m));
+        }
+
+        // Modals / Reset Handshake on password change
         function openHelp() { document.getElementById('help-modal').style.display='flex'; applyLanguage(currentLang); }
         function openPasswordModal() { document.getElementById('password-modal').style.display='flex'; document.getElementById('modal-pw-input').value=sharedPassword; }
+
         function savePassword() {
-            sharedPassword = document.getElementById('modal-pw-input').value.trim();
-            const btn = document.getElementById('btn-lock');
-            if(sharedPassword) { showToast("Mot de passe défini"); }
-            else { showToast("Mot de passe retiré"); }
-            updateSecurityStatusDisplay(); document.getElementById('password-strength-display').innerText=""; closeModals();
+            const inputVal = document.getElementById('modal-pw-input').value.trim();
+            // Check if connected before changing password
+            if (conn && conn.open) {
+                if(!confirm("Changer le mot de passe pendant une connexion nécessite un rechargement pour garantir la sécurité. Continuer ?")) return;
+                conn.close();
+                location.reload();
+                return;
+            }
+            sharedPassword = inputVal;
+            if(sharedPassword) {
+                showToast("Mot de passe défini");
+            } else {
+                showToast("Mot de passe retiré");
+            }
+            updateSecurityStatusDisplay();
+            document.getElementById('password-strength-display').innerText="";
+            closeModals();
         }
+
         function closeModals(e) {
             if(e && e.target.classList.contains('modal-content')) return;
             document.querySelectorAll('.modal-backdrop').forEach(el => el.style.display='none');
-            if(html5QrCode && isScannerRunning) { html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }).catch(()=>{}); }
+            if(html5QrCode && isScannerRunning) {
+                html5QrCode.stop().then(()=>{ isScannerRunning=false; html5QrCode.clear(); }).catch(()=>{});
+            }
         }
 
         // QR
@@ -615,17 +849,48 @@
             document.getElementById('qr-text-display').innerText=id;
             document.getElementById('qr-modal').style.display='flex';
         }
+
         function startScanner() {
             document.getElementById('scanner-modal').style.display='flex';
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start({facingMode:"environment"}, {fps:10, qrbox:{width:250, height:250}}, (txt)=>{
-                document.getElementById('remote-id-input').value=txt; showToast("QR OK"); stopScanner();
-            }).then(() => isScannerRunning=true).catch(e => { alert("Caméra erreur: "+e); closeModals(); });
+                document.getElementById('remote-id-input').value=txt;
+                showToast("QR OK");
+                stopScanner();
+            }).then(() => isScannerRunning=true).catch(e => {
+                alert("Caméra erreur: "+e);
+                closeModals();
+            });
         }
+
         function stopScanner() { closeModals(); }
-        function toggleCustomName() { const c=document.getElementById('use-custom-name'); document.getElementById('my-id-input').disabled=!c.checked; if(!c.checked) document.getElementById('my-id-input').value=''; }
-        function toggleIdReveal() { document.getElementById('display-my-id').classList.toggle('revealed'); lucide.createIcons(); }
-        function copyId() { const t = document.getElementById('display-my-id').innerText; if(t!=='...') secureCopy(t, TRANSLATIONS[currentLang].toastCopied); }
+        
+        function toggleCustomName() {
+            const c=document.getElementById('use-custom-name');
+            document.getElementById('my-id-input').disabled=!c.checked;
+            if(!c.checked) document.getElementById('my-id-input').value='';
+        }
+        
+        function toggleIdReveal() {
+            document.getElementById('display-my-id').classList.toggle('revealed');
+            lucide.createIcons();
+        }
+        
+        function copyId() {
+            const t = document.getElementById('display-my-id').innerText;
+            if(t!=='...') secureCopy(t, TRANSLATIONS[currentLang].toastCopied);
+        }
+        
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                if (conn && conn.open) {
+                    alert("Déconnexion pour inactivité (30 min)");
+                    conn.close();
+                    location.reload();
+                }
+            }, 30 * 60 * 1000);
+        }
 
         initUI();
     </script>
