@@ -1,3 +1,6 @@
+> [!WARNING]
+> **Important:** This software is currently under development. To ensure your security, please avoid entering sensitive data and choose a robust password to protect your information.
+
 # 🔒 P2P-Encrypted-Chat: Ephemeral & Serverless Secure Messenger
 
    
